@@ -1,13 +1,13 @@
 {
-  "name": "cupraapitest",
+  "name": "cupra_app",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Henry Kellner",
+  "license": "MIT",
   "dependencies": {
     "@peculiar/webcrypto": "^1.3.3",
     "express": "^4.17.3",
