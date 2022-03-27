@@ -586,15 +586,15 @@ class VwWeConnect {
 */                                
                             })
                             .catch(() => {
-                                this.log.error("Get Vehicles Failed");
+                                throw "Get Vehicles Failed");
                             });
                     })
                     .catch(() => {
-                        this.log.error("get personal data Failed");
+                        throw "get personal data Failed";
                     });
             })
             .catch(() => {
-                this.log.error("Login Failed");
+                throw "Login Failed";
             });
 
         let result = await promise; // wait for the promise from the start to resolve

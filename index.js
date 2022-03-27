@@ -15,7 +15,7 @@ let activeCommands = {};
 let updateTimeout;
 
 //-------------------------------------------------------------------------------------------
-function sendCurrentData(socket) {
+function sendCurrentData(socket, newData) {
 
   // check if active command timed out
   for(let key in activeCommands) {
@@ -28,6 +28,7 @@ function sendCurrentData(socket) {
   }
 
   vwConn.vehicles[0].activeCommands = activeCommands;
+  vwConn.vehicles[0].newData = newData;
   socket.emit('data', vwConn.vehicles[0]);
 }
 
@@ -117,6 +118,7 @@ function startServer() {
     });
 
     //-------------------------------------------------------------------------------------------
+    sendCurrentData(socket);
     vwConn.update();
   });
 
@@ -133,7 +135,7 @@ function onNewData() {
 
   for(let key in clients) {
     let socket = clients[key];
-    sendCurrentData(socket);
+    sendCurrentData(socket, true);
     cnt++;
   }
 
@@ -178,7 +180,7 @@ async function main() {
   
     vwConn.onNewData = onNewData;
   
-    vwConn.getData();
+    await vwConn.getData();
 
   } catch(e) {
     console.error('ERROR ' + e);

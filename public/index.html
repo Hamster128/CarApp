@@ -42,7 +42,7 @@
       <script src="/static/moment.min.js"></script>
       <script src="https://kit.fontawesome.com/e51bfceb96.js" crossorigin="anonymous"></script>
 
-      <h1 id="title" style="text-align: center;" onClick="update();">loading...</h1>
+      <h1 id="title" style="text-align: center;" onClick="update();">updateing...</h1>
       <span id="debug"></span>
       <br>
       <br>
@@ -133,7 +133,10 @@
           socket.on('data', function (data) {
             //$('#debug').html(moment().format());
 
-            $('#title').html(data.vehicleNickname);
+            if(data.newData) {
+              $('#title').html(data.vehicleNickname);
+            }
+
             $('#soc').html(data.charging.status.battery.currentSOC_pct);
             $('#soc_meter').prop('value', data.charging.status.battery.currentSOC_pct);
 
