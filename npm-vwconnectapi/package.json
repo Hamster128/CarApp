@@ -1,0 +1,26 @@
+{
+  "name": "npm-vwconnectapi",
+  "version": "0.9.1",
+  "description": "Provides an API for VW Connect",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "Volkswagen",
+    "Connect",
+    "API",
+    "ID.3",
+    "Elli Charger",
+    "WeCharge"
+  ],
+  "author": "nightsha-de",
+  "license": "MIT",
+  "dependencies": {
+    "@peculiar/webcrypto": "^1.0.22",
+    "jsdom": "^15.2.1",
+    "request": "^2.88.0",
+    "traverse": "^0.6.6",
+    "uuid": "^3.3.3"
+  }
+}

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Cupra</title>
+        <style>
+          .button {
+            font-size: 60px;
+          }
+          .symbol {
+            font-size: 220px;
+            border: 10px solid #000;
+            border-radius: 25px;
+            padding: 20px;
+          }
+          .symbol_td {
+            text-align:center;
+          }
+          .green {
+            color: #0A0;
+          }
+          .white {
+            color: #EEE;
+          }
+          .grey {
+            color: #666;
+          }
+          .red {
+            color: #C11;
+          }
+          .clicked {
+            border: 10px solid #0A0;
+          }
+          .kw {
+            font-size: 70px;
+          }
+        </style>
+    </head>
+    <body style="font-family: Arial, Helvetica, sans-serif; background-color:#000; color:#AAA; font-size:50px; padding:30px;">
+      <script src="/static/socket.io.min.js"></script>
+      <script src="/static/jquery-3.6.0.min.js"></script>
+      <script src="/static/moment.min.js"></script>
+      <script src="https://kit.fontawesome.com/e51bfceb96.js" crossorigin="anonymous"></script>
+
+      <h1 id="title" style="text-align: center;" onClick="update();">loading...</h1>
+      <span id="debug"></span>
+      <br>
+      <br>
+      <table style="width:100%"><tr>
+        <td width="10px"><span id="soc" style="font-size:80px;"></span>%&nbsp;</td>
+        <td><meter min=0 max=100 low="20" id="soc_meter" style="width:100%; height:80px;"></meter></td>
+      </tr>
+      <tr style="height:57px;">
+        <td></td>
+        <td style="text-align:center;"><span id="soc_time"></span></td>
+      </tr>
+      </table>
+      <br>
+      <br>
+      <br>
+      <table style="width:100%">
+        <tr>
+          <td class="symbol_td" onClick="clickCharging()"><i id="symCharging" class="fa-solid fa-plug-circle-xmark symbol"></i></td>
+          <td class="symbol_td" onClick="clickClimate()"><i id="symClimate" class="fa-solid fa-fan symbol"></i></td>
+        </tr>
+        <tr style="height:300px">
+          <td id="txtCharging" class="symbol_td"></td>
+          <td id="txtClimate" class="symbol_td"></td>
+        </tr>
+        <tr>
+          <td style="display:none" class="symbol_td" onClick="clickSettings()"><i id="symSettings" class="fa-solid fa-gear symbol"></i></td>
+        </tr>
+      </table>
+
+      <script>
+          var socket = io('http://'+location.host);
+          var socTime;
+
+          // -----------------------------------------------------------------------------------------------
+          // currently not working
+          function clickSettings() {
+            $('#symSettings').addClass('clicked');
+            socket.emit('command', {action: 'charging', state: 'settings', body: {"targetPct": 70}});
+          }
+
+          // -----------------------------------------------------------------------------------------------
+          function clickCharging() {
+
+            if($('#symCharging').hasClass('white')) {
+
+              $('#symCharging').addClass('clicked');
+              socket.emit('command', {action: 'charging', state: 'start'});
+
+            } else if($('#symCharging').hasClass('green')) {
+
+              $('#symCharging').addClass('clicked');
+              socket.emit('command', {action: 'charging', state: 'stop'});
+            }
+          }
+
+          // -----------------------------------------------------------------------------------------------
+          function clickClimate() {
+
+            if($('#symClimate').hasClass('grey')) {
+
+              $('#symClimate').addClass('clicked');
+              socket.emit('command', {action: 'climatisation', state: 'start'});
+
+            } else {
+              
+              $('#symClimate').addClass('clicked');
+              socket.emit('command', {action: 'climatisation', state: 'stop'});
+            }
+          }
+
+          // -----------------------------------------------------------------------------------------------
+          function update() {
+            $('#title').html('updateing...');
+            socket.emit('update');
+          }
+
+          // -----------------------------------------------------------------------------------------------
+          socket.io.on('close', function() {
+            $('#title').html('offline');
+          });
+
+          // -----------------------------------------------------------------------------------------------
+          socket.io.on('reconnect', function() {
+            $('#title').html('updateing...');
+          });
+
+          // -----------------------------------------------------------------------------------------------
+          socket.on('data', function (data) {
+            //$('#debug').html(moment().format());
+
+            $('#title').html(data.vehicleNickname);
+            $('#soc').html(data.charging.status.battery.currentSOC_pct);
+            $('#soc_meter').prop('value', data.charging.status.battery.currentSOC_pct);
+
+            socTime = moment(data.charging.status.battery.carCapturedTimestamp);
+            updateSOCtime();
+
+            // ---------------------------------------- CHARGING SYMBOL ----------------------------------------
+            $('#symCharging').removeClass(['fa-plug-circle-check', 'fa-plug-circle-xmark', 'fa-plug-circle-minus', 'white', 'grey', 'red', 'clicked']);
+
+            if(data.activeCommands['charging']) {
+
+              if(data.activeCommands['charging'].state == 'start') {
+                $('#symCharging').addClass(['fa-plug-circle-bolt', 'green']);
+              } else {
+                if(data.charging.status.plug.plugLockState == 'locked') {
+                  $('#symCharging').addClass(['fa-plug-circle-minus', 'white']);
+                } else {
+                  $('#symCharging').addClass(['fa-plug-circle-check', 'white']);
+                }
+              }
+            } else if(data.charging.status.charging.chargePower_kW) {
+
+              $('#symCharging').addClass(['fa-plug-circle-bolt', 'green']);
+
+            } else if(data.charging.status.plug.plugConnectionState == 'connected') {
+
+              if(data.charging.status.plug.externalPower == 'unavailable') {
+                $('#symCharging').addClass(['fa-plug-circle-xmark', 'red']);
+              } else {
+                if(data.charging.status.plug.plugLockState == 'locked') {
+                  $('#symCharging').addClass(['fa-plug-circle-minus', 'white']);
+                } else {
+                  $('#symCharging').addClass(['fa-plug-circle-check', 'white']);
+                }
+              }
+            } else {
+
+              $('#symCharging').addClass(['fa-plug-circle-xmark', 'grey']);
+            }
+
+            // ---------------------------------------- CHARGING TEXT ----------------------------------------
+            if(data.charging.status.charging.chargePower_kW) {
+              $('#txtCharging').html('<span class="kw">'+data.charging.status.charging.chargePower_kW + '&nbsp;kW</span><br>' + 
+                                      data.status.services.charging.remainingTime + '&nbsp;mins&nbsp;&gt;&nbsp;' + data.status.services.charging.targetPct + '&nbsp;kWh');
+            } else {
+              $('#txtCharging').html('');
+            }
+
+            // ---------------------------------------- CLIMATISATION SYMBOL ----------------------------------------
+            $('#symClimate').removeClass(['clicked', 'grey', 'green']);
+
+            if(data.activeCommands['climatisation']) {
+              if(data.activeCommands['climatisation'].state == 'start') {
+                $('#symClimate').addClass('green');
+              } else {
+                $('#symClimate').addClass('grey');
+              }
+            } else if(data.climatisation.data.climatisationStatus.climatisationState == 'off') {
+              $('#symClimate').addClass('grey');
+            } else {
+              $('#symClimate').addClass('green');
+            }
+
+            // ---------------------------------------- CLIMATISATION TEXT ----------------------------------------
+            if(data.climatisation.data.climatisationStatus.climatisationState != 'off') {
+              $('#txtClimate').html(data.climatisation.data.climatisationStatus.climatisationState+'<br>'+
+                                    data.climatisation.data.climatisationStatus.remainingClimatisationTime_min+' min');
+            } else {
+              $('#txtClimate').html('');
+            }
+
+          });
+
+          // -----------------------------------------------------------------------------------------------
+          function updateSOCtime() {
+
+            if(!socTime) {
+              return;
+            }
+
+            $('#soc_time').html(socTime.fromNow());
+          }
+
+          setInterval(updateSOCtime, 5000);
+
+        </script>
+    </body>
+</html>

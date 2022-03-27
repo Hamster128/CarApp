@@ -1,0 +1,9 @@
+{
+  "email": "myname@donaim.com",
+  "pwd": "your_password",
+  "api_key": "0996dfbj3hvj4v",
+  "port": 8080,
+  "index_path": "/index.html",
+  "command_timeout_secs": 180,
+  "refresh_secs": 5
+}
