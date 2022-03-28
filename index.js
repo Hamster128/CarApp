@@ -72,7 +72,7 @@ function startServer() {
 
   app.get(Config.widget_path, function (req, res) {
     res.sendFile(__dirname + '/web/widget.html');
-});
+  });
 
   //-------------------------------------------------------------------------------------------
   app.use('/static', express.static('public'));
@@ -173,7 +173,6 @@ async function main() {
 
     loadConfig();
 
-    var log = new api.Log();
     vwConn = new api.VwWeConnect();
   
     vwConn.setLogLevel("INFO"); // optional, ERROR (default), INFO, WARN or DEBUG
