@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Cupra</title>
+        <style>
+        </style>
+    </head>
+    <body style="font-family: Arial, Helvetica, sans-serif; background-color:#000; color:#AAA; font-size:50px; padding:30px;">
+      <script src="/static/socket.io.min.js"></script>
+      <script src="/static/jquery-3.6.0.min.js"></script>
+      <script src="/static/moment.min.js"></script>
+      <script src="https://kit.fontawesome.com/e51bfceb96.js" crossorigin="anonymous"></script>
+
+      <span id="soc" style="font-size:80px;"></span>
+
+      <script>
+          var socket = io('http://'+location.host);
+
+          // -----------------------------------------------------------------------------------------------
+          socket.io.on('close', function() {
+          });
+
+          // -----------------------------------------------------------------------------------------------
+          socket.io.on('reconnect', function() {
+          });
+
+          // -----------------------------------------------------------------------------------------------
+          socket.on('data', function (data) {
+
+            if(data.newData) {
+            }
+
+            $('#soc').html(data.charging.status.battery.currentSOC_pct);
+
+            socTime = moment(data.charging.status.battery.carCapturedTimestamp);
+
+          });
+
+        </script>
+    </body>
+</html>

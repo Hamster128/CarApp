@@ -67,8 +67,12 @@ function startServer() {
 
   //-------------------------------------------------------------------------------------------
   app.get(Config.index_path, function (req, res) {
-      res.sendFile(__dirname + '/public/index.html');
+      res.sendFile(__dirname + '/web/index.html');
   });
+
+  app.get(Config.widget_path, function (req, res) {
+    res.sendFile(__dirname + '/web/widget.html');
+});
 
   //-------------------------------------------------------------------------------------------
   app.use('/static', express.static('public'));
