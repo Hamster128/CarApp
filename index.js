@@ -145,10 +145,6 @@ async function onNewData() {
     startServer();
   }
 
-  if(ChargeLimit > vwConn.vehicles[0].status.services.charging.targetPct) {
-    ChargeLimit = vwConn.vehicles[0].status.services.charging.targetPct;
-  }
-
   let cnt = 0;
 
   for(let key in clients) {
@@ -158,7 +154,7 @@ async function onNewData() {
   }
 
   // check charge limit
-  if(ChargeLimit < vwConn.vehicles[0].status.services.charging.targetPct && 
+  if(ChargeLimit < 100 && 
      vwConn.vehicles[0].charging.status.battery.currentSOC_pct >= ChargeLimit && 
      vwConn.vehicles[0].charging.status.charging.chargePower_kW > 0) {
 
@@ -168,12 +164,12 @@ async function onNewData() {
       vwConn.update();
     }
 
-    ChargeLimit = vwConn.vehicles[0].status.services.charging.targetPct;
+    ChargeLimit = 100;
     onNewData();
   }
 
   // stop polling when not needed
-  if(!cnt && (ChargeLimit >= vwConn.vehicles[0].status.services.charging.targetPct || vwConn.vehicles[0].charging.status.charging.chargePower_kW == 0) ) {
+  if(!cnt && (ChargeLimit == 100 || vwConn.vehicles[0].charging.status.charging.chargePower_kW == 0) ) {
     return;
   }
 

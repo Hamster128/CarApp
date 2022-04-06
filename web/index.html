@@ -100,7 +100,7 @@
 
       <script>
           var socket = io('http://'+location.host);
-          var socTime;
+          var socTime, targetPct = 100;
 
           // -----------------------------------------------------------------------------------------------
           // currently not working
@@ -154,7 +154,13 @@
           // -----------------------------------------------------------------------------------------------
           function displayChargeLimit(charge_imit) {
             $('#limit_slider').prop('value', charge_imit);
-            $('#soc_limit').html(charge_imit);
+
+            if(targetPct < charge_imit) {
+              $('#soc_limit').html(targetPct);
+            } else {
+              $('#soc_limit').html(charge_imit);
+            }
+            
           }
 
           // -----------------------------------------------------------------------------------------------
@@ -182,6 +188,7 @@
             updateSOCtime();
 
             // ---------------------------------------- CHARGING LIMIT ----------------------------------------
+            targetPct = data.status.services.charging.targetPct;
             displayChargeLimit(data.charge_imit);
 
             // ---------------------------------------- CHARGING SYMBOL ----------------------------------------
