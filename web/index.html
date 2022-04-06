@@ -15,6 +15,7 @@
           }
           .symbol_td {
             text-align:center;
+            cursor:pointer;
           }
           .green {
             color: #0A0;
@@ -34,6 +35,24 @@
           .kw {
             font-size: 70px;
           }
+          .td_limit_marker {
+            text-align: right;
+            font-size: 100px;
+            cursor:pointer;
+          }
+          .slider {
+            -webkit-appearance: none;
+            background: #000;
+            height:40px;
+          }
+          .slider::-webkit-slider-thumb {
+            -webkit-appearance: none; /* Override default look */
+            appearance: none;
+            width: 76px; /* Set a specific slider handle width */
+            height: 76px; /* Slider handle height */
+            cursor: pointer; /* Cursor on hover */
+            background-image: url('/static/slider.png');
+          }
         </style>
     </head>
     <body style="font-family: Arial, Helvetica, sans-serif; background-color:#000; color:#AAA; font-size:50px; padding:30px;">
@@ -46,14 +65,21 @@
       <span id="debug"></span>
       <br>
       <br>
-      <table style="width:100%"><tr>
-        <td width="10px"><span id="soc" style="font-size:80px;"></span>%&nbsp;</td>
-        <td><meter min=0 max=100 low="20" id="soc_meter" style="width:100%; height:80px;"></meter></td>
-      </tr>
-      <tr style="height:57px;">
-        <td></td>
-        <td style="text-align:center;"><span id="soc_time"></span></td>
-      </tr>
+      <table style="width:100%">
+        <tr>
+          <td><span id="soc_limit"></span>%&nbsp;</td>
+          <td style="text-align:right;">
+            <input type="range" min="10" max="100" step="10" value="50" class="slider" id="limit_slider" style="width:90%" onInput="setChargeLimit(this.value);">
+          </td>
+        </tr>
+        <tr>
+          <td width="10px"><span id="soc" style="font-size:80px;"></span>%&nbsp;</td>
+          <td><meter min=0 max=100 low="20" id="soc_meter" style="width:100%; height:80px;"></meter></td>
+        </tr>
+        <tr style="height:57px;">
+          <td></td>
+          <td style="text-align:center;"><span id="soc_time"></span></td>
+        </tr>
       </table>
       <br>
       <br>
@@ -120,6 +146,18 @@
           }
 
           // -----------------------------------------------------------------------------------------------
+          function setChargeLimit(charge_imit) {
+            socket.emit('set_charge_limit', charge_imit);
+            displayChargeLimit(charge_imit);
+          }
+
+          // -----------------------------------------------------------------------------------------------
+          function displayChargeLimit(charge_imit) {
+            $('#limit_slider').prop('value', charge_imit);
+            $('#soc_limit').html(charge_imit);
+          }
+
+          // -----------------------------------------------------------------------------------------------
           socket.io.on('close', function() {
             $('#title').html('offline');
           });
@@ -142,6 +180,9 @@
 
             socTime = moment(data.charging.status.battery.carCapturedTimestamp);
             updateSOCtime();
+
+            // ---------------------------------------- CHARGING LIMIT ----------------------------------------
+            displayChargeLimit(data.charge_imit);
 
             // ---------------------------------------- CHARGING SYMBOL ----------------------------------------
             $('#symCharging').removeClass(['fa-plug-circle-check', 'fa-plug-circle-xmark', 'fa-plug-circle-minus', 'white', 'grey', 'red', 'clicked']);

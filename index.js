@@ -13,6 +13,7 @@ let clients = {};
 let server;
 let activeCommands = {}; 
 let updateTimeout;
+let ChargeLimit = 100;
 
 //-------------------------------------------------------------------------------------------
 function sendCurrentData(socket, newData) {
@@ -28,7 +29,9 @@ function sendCurrentData(socket, newData) {
   }
 
   vwConn.vehicles[0].activeCommands = activeCommands;
+  vwConn.vehicles[0].charge_imit = ChargeLimit;
   vwConn.vehicles[0].newData = newData;
+  
   socket.emit('data', vwConn.vehicles[0]);
 }
 
@@ -122,6 +125,13 @@ function startServer() {
     });
 
     //-------------------------------------------------------------------------------------------
+    socket.on('set_charge_limit', async function(charge_limit) {
+      ChargeLimit = charge_limit;
+      onNewData();
+    });
+    
+
+    //-------------------------------------------------------------------------------------------
     sendCurrentData(socket);
     vwConn.update();
   });
@@ -129,10 +139,14 @@ function startServer() {
 }
 
 //-------------------------------------------------------------------------------------------
-function onNewData() {
+async function onNewData() {
 
   if(!server) {
     startServer();
+  }
+
+  if(ChargeLimit > vwConn.vehicles[0].status.services.charging.targetPct) {
+    ChargeLimit = vwConn.vehicles[0].status.services.charging.targetPct;
   }
 
   let cnt = 0;
@@ -143,16 +157,31 @@ function onNewData() {
     cnt++;
   }
 
-  if(!cnt) {
-    return;
+  // check charge limit
+  if(ChargeLimit < vwConn.vehicles[0].status.services.charging.targetPct && 
+     vwConn.vehicles[0].charging.status.battery.currentSOC_pct >= ChargeLimit && 
+     vwConn.vehicles[0].charging.status.charging.chargePower_kW > 0) {
+
+    if(!activeCommands['charging'] || activeCommands['charging'].state != 'stop') {
+      console.log('charging limit reached, stopping charging ' + vwConn.vehicles[0].charging.status.battery.currentSOC_pct + '>=' + ChargeLimit);
+      await doCommand({action: 'charging', state: 'stop'});
+      vwConn.update();
+    }
+
+    ChargeLimit = vwConn.vehicles[0].status.services.charging.targetPct;
+    onNewData();
   }
 
-  console.log('active clients ' + cnt);
+  // stop polling when not needed
+  if(!cnt && (ChargeLimit >= vwConn.vehicles[0].status.services.charging.targetPct || vwConn.vehicles[0].charging.status.charging.chargePower_kW == 0) ) {
+    return;
+  }
 
   if(updateTimeout) {
     return;
   }
 
+  // start next polling
   updateTimeout = setTimeout(function() {
     vwConn.update();
     updateTimeout = null;

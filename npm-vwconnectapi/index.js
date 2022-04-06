@@ -586,7 +586,7 @@ class VwWeConnect {
 */                                
                             })
                             .catch(() => {
-                                throw "Get Vehicles Failed");
+                                throw "Get Vehicles Failed";
                             });
                     })
                     .catch(() => {
