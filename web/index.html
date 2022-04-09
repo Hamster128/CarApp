@@ -29,6 +29,9 @@
           .red {
             color: #C11;
           }
+          .blue {
+            color: #44F;
+          }
           .clicked {
             border: 10px solid #0A0;
           }
@@ -69,7 +72,7 @@
         <tr>
           <td><span id="soc_limit"></span>%&nbsp;</td>
           <td style="text-align:right;">
-            <input type="range" min="10" max="100" step="10" value="50" class="slider" id="limit_slider" style="width:90%" onInput="setChargeLimit(this.value);">
+            <input type="range" min="10" max="100" step="5" value="50" class="slider" id="limit_slider" style="width:90%" onInput="changingChargeLimit(this.value);" onChange="setChargeLimit(this.value);">
           </td>
         </tr>
         <tr>
@@ -143,6 +146,11 @@
           function update() {
             $('#title').html('updateing...');
             socket.emit('update');
+          }
+
+          // -----------------------------------------------------------------------------------------------
+          function changingChargeLimit(charge_imit) {
+            $('#soc_limit').html(charge_imit);
           }
 
           // -----------------------------------------------------------------------------------------------
@@ -234,7 +242,7 @@
             }
 
             // ---------------------------------------- CLIMATISATION SYMBOL ----------------------------------------
-            $('#symClimate').removeClass(['clicked', 'grey', 'green']);
+            $('#symClimate').removeClass(['clicked', 'grey', 'green', 'red', 'blue']);
 
             if(data.activeCommands['climatisation']) {
               if(data.activeCommands['climatisation'].state == 'start') {
@@ -245,7 +253,11 @@
             } else if(data.climatisation.data.climatisationStatus.climatisationState == 'off') {
               $('#symClimate').addClass('grey');
             } else {
-              $('#symClimate').addClass('green');
+              if(data.climatisation.data.climatisationStatus.climatisationState == 'heating') {
+                $('#symClimate').addClass('red');
+              } else {
+                $('#symClimate').addClass('blue');
+              }
             }
 
             // ---------------------------------------- CLIMATISATION TEXT ----------------------------------------
