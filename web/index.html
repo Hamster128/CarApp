@@ -246,7 +246,13 @@
 
             if(data.activeCommands['climatisation']) {
               if(data.activeCommands['climatisation'].state == 'start') {
-                $('#symClimate').addClass('green');
+                if(data.climatisation.data.climatisationStatus.climatisationState == 'heating') {
+                  $('#symClimate').addClass('red');
+                } else if(data.climatisation.data.climatisationStatus.climatisationState == 'cooling') {
+                  $('#symClimate').addClass('blue');
+                } else {
+                  $('#symClimate').addClass('green');
+                }
               } else {
                 $('#symClimate').addClass('grey');
               }
