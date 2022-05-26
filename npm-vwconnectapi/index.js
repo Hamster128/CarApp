@@ -448,153 +448,151 @@ class VwWeConnect {
         if (this.config.tripCyclic == true) {
             this.tripTypes.push("cyclic");
         }
-        this.login()
+
+        await this.login();
+
+        this.log.debug("Login successful");
+        
+        this.getPersonalData()
             .then(() => {
-                this.log.debug("Login successful");
-                this.getPersonalData()
+                this.getVehicles()
                     .then(() => {
-                        this.getVehicles()
-                            .then(() => {
-                                if (this.config.type !== "go") {
-                                    this.vinArray.forEach((vin) => {
-                                        if (this.config.type === "id") {
-                                            this.getIdStatus(vin).catch(() => {
-                                                this.log.error("get id status Failed");
+                        if (this.config.type !== "go") {
+                            this.vinArray.forEach((vin) => {
+                                if (this.config.type === "id") {
+                                    this.getIdStatus(vin).catch(() => {
+                                        this.log.error("get id status Failed");
+                                    });
+                                } else if (this.config.type === "seatcupra") {
+                                    this.getSeatCupraStatus(vin).catch(() => {
+                                        this.log.error("get cupra status Failed");
+                                    });
+                                } else {
+                                    this.getHomeRegion(vin)
+                                        .catch(() => {
+                                            this.log.debug("get home region Failed " + vin);
+                                        })
+                                        .finally(() => {
+                                            this.getVehicleData(vin).catch(() => {
+                                                this.log.error("get vehicle data Failed");
                                             });
-                                        } else if (this.config.type === "seatcupra") {
-                                            this.getSeatCupraStatus(vin).catch(() => {
-                                                this.log.error("get cupra status Failed");
+                                            this.getVehicleRights(vin).catch(() => {
+                                                this.log.error("get vehicle rights Failed");
+                                            });
+                                            this.requestStatusUpdate(vin)
+                                                .finally(() => {
+                                                    this.statesArray.forEach((state) => {
+                                                        if (state.path == "tripdata") {
+                                                            this.tripTypes.forEach((tripType) => {
+                                                                this.getVehicleStatus(
+                                                                    vin,
+                                                                    state.url,
+                                                                    state.path,
+                                                                    state.element,
+                                                                    state.element2,
+                                                                    state.element3,
+                                                                    state.element4,
+                                                                    tripType
+                                                                ).catch(() => {
+                                                                    this.log.debug("error while getting " + state.url);
+                                                                });
+                                                            });
+                                                        } else {
+                                                            this.getVehicleStatus(vin, state.url, state.path, state.element, state.element2, state.element3, state.element4).catch(() => {
+                                                                this.log.debug("error while getting " + state.url);
+                                                            });
+                                                        }
+                                                    });
+                                                })
+                                                .catch(() => {
+                                                    this.log.error("status update Failed " + vin);
+                                                });
+                                        })
+                                        .catch(() => {
+                                            this.log.error("Error getting home region");
+                                        });
+                                }
+                            });
+                        }
+
+                        this.update = function() {
+                            if(!this.vinArray) {
+                                return;
+                            }
+
+                            this.vinArray.forEach((vin) => {
+                                this.getSeatCupraStatus(vin).catch((e) => {
+                                    this.log.error("get seat status Failed "+e);
+                                    this.refreshSeatCupraToken().catch(() => {});
+                                });
+                            });
+                        }
+/*
+                        this.updateInterval = setInterval(() => {
+                            if (this.config.type === "go") {
+                                this.getVehicles();
+                                return;
+                            } else if (this.config.type === "id") {
+                                this.vinArray.forEach((vin) => {
+                                    this.getIdStatus(vin).catch(() => {
+                                        this.log.error("get id status Failed");
+                                        this.refreshIDToken().catch(() => {});
+                                    });
+                                    this.getWcData();
+                                });
+                                return;
+                            } else if (this.config.type === "seatcupra") {
+                                this.vinArray.forEach((vin) => {
+                                    this.getSeatCupraStatus(vin).catch((e) => {
+                                        this.log.error("get seat status Failed "+e);
+                                        this.refreshSeatCupraToken().catch(() => {});
+                                    });
+                                });
+                                return;
+                            } else {
+                                this.vinArray.forEach((vin) => {
+                                    this.statesArray.forEach((state) => {
+                                        if (state.path == "tripdata") {
+                                            this.tripTypes.forEach((tripType) => {
+                                                this.getVehicleStatus(vin, state.url, state.path, state.element, state.element2, null, null, tripType).catch(() => {
+                                                    this.log.debug("error while getting " + state.url);
+                                                });
                                             });
                                         } else {
-                                            this.getHomeRegion(vin)
-                                                .catch(() => {
-                                                    this.log.debug("get home region Failed " + vin);
-                                                })
-                                                .finally(() => {
-                                                    this.getVehicleData(vin).catch(() => {
-                                                        this.log.error("get vehicle data Failed");
-                                                    });
-                                                    this.getVehicleRights(vin).catch(() => {
-                                                        this.log.error("get vehicle rights Failed");
-                                                    });
-                                                    this.requestStatusUpdate(vin)
-                                                        .finally(() => {
-                                                            this.statesArray.forEach((state) => {
-                                                                if (state.path == "tripdata") {
-                                                                    this.tripTypes.forEach((tripType) => {
-                                                                        this.getVehicleStatus(
-                                                                            vin,
-                                                                            state.url,
-                                                                            state.path,
-                                                                            state.element,
-                                                                            state.element2,
-                                                                            state.element3,
-                                                                            state.element4,
-                                                                            tripType
-                                                                        ).catch(() => {
-                                                                            this.log.debug("error while getting " + state.url);
-                                                                        });
-                                                                    });
-                                                                } else {
-                                                                    this.getVehicleStatus(vin, state.url, state.path, state.element, state.element2, state.element3, state.element4).catch(() => {
-                                                                        this.log.debug("error while getting " + state.url);
-                                                                    });
-                                                                }
-                                                            });
-                                                        })
-                                                        .catch(() => {
-                                                            this.log.error("status update Failed " + vin);
-                                                        });
-                                                })
-                                                .catch(() => {
-                                                    this.log.error("Error getting home region");
-                                                });
+                                            this.getVehicleStatus(vin, state.url, state.path, state.element, state.element2).catch(() => {
+                                                this.log.debug("error while getting " + state.url);
+                                            });
                                         }
-                                    });
-                                }
 
-                                this.update = function() {
-                                    if(!this.vinArray) {
-                                        return;
-                                    }
-
-                                    this.vinArray.forEach((vin) => {
-                                        this.getSeatCupraStatus(vin).catch((e) => {
-                                            this.log.error("get seat status Failed "+e);
-                                            this.refreshSeatCupraToken().catch(() => {});
-                                        });
                                     });
-                                }
-/*
-                                this.updateInterval = setInterval(() => {
+                                });
+                            }
+
+                        }, this.config.interval * 60 * 1000);
+
+                        if (this.config.type !== "id") {
+                            if (this.config.forceinterval > 0) {
+                                this.fupdateInterval = setInterval(() => {
                                     if (this.config.type === "go") {
                                         this.getVehicles();
                                         return;
-                                    } else if (this.config.type === "id") {
-                                        this.vinArray.forEach((vin) => {
-                                            this.getIdStatus(vin).catch(() => {
-                                                this.log.error("get id status Failed");
-                                                this.refreshIDToken().catch(() => {});
-                                            });
-                                            this.getWcData();
-                                        });
-                                        return;
-                                    } else if (this.config.type === "seatcupra") {
-                                        this.vinArray.forEach((vin) => {
-                                            this.getSeatCupraStatus(vin).catch((e) => {
-                                                this.log.error("get seat status Failed "+e);
-                                                this.refreshSeatCupraToken().catch(() => {});
-                                            });
-                                        });
-                                        return;
-                                    } else {
-                                        this.vinArray.forEach((vin) => {
-                                            this.statesArray.forEach((state) => {
-                                                if (state.path == "tripdata") {
-                                                    this.tripTypes.forEach((tripType) => {
-                                                        this.getVehicleStatus(vin, state.url, state.path, state.element, state.element2, null, null, tripType).catch(() => {
-                                                            this.log.debug("error while getting " + state.url);
-                                                        });
-                                                    });
-                                                } else {
-                                                    this.getVehicleStatus(vin, state.url, state.path, state.element, state.element2).catch(() => {
-                                                        this.log.debug("error while getting " + state.url);
-                                                    });
-                                                }
-
-                                            });
-                                        });
                                     }
-
-                                }, this.config.interval * 60 * 1000);
-
-                                if (this.config.type !== "id") {
-                                    if (this.config.forceinterval > 0) {
-                                        this.fupdateInterval = setInterval(() => {
-                                            if (this.config.type === "go") {
-                                                this.getVehicles();
-                                                return;
-                                            }
-                                            this.vinArray.forEach((vin) => {
-                                                this.requestStatusUpdate(vin).catch(() => {
-                                                    this.log.error("force status update Failed");
-                                                });
-                                            });
-                                        }, this.config.forceinterval * 60 * 1000);
-                                    }
-                                }
+                                    this.vinArray.forEach((vin) => {
+                                        this.requestStatusUpdate(vin).catch(() => {
+                                            this.log.error("force status update Failed");
+                                        });
+                                    });
+                                }, this.config.forceinterval * 60 * 1000);
+                            }
+                        }
 */                                
-                            })
-                            .catch(() => {
-                                throw "Get Vehicles Failed";
-                            });
                     })
                     .catch(() => {
-                        throw "get personal data Failed";
+                        throw "Get Vehicles Failed";
                     });
             })
             .catch(() => {
-                throw "Login Failed";
+                throw "get personal data Failed";
             });
 
         let result = await promise; // wait for the promise from the start to resolve

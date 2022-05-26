@@ -30,7 +30,7 @@
             color: #C11;
           }
           .blue {
-            color: #44F;
+            color: #68F;
           }
           .clicked {
             border: 10px solid #0A0;
@@ -277,8 +277,7 @@
 
             // ---------------------------------------- CLIMATISATION TEXT ----------------------------------------
             if(data.climatisation.data.climatisationStatus.climatisationState != 'off') {
-              $('#txtClimate').html(data.climatisation.data.climatisationStatus.climatisationState+'<br>'+
-                                    data.climatisation.data.climatisationStatus.remainingClimatisationTime_min+' min');
+              $('#txtClimate').html(data.climatisation.data.climatisationStatus.remainingClimatisationTime_min+' min');
             } else {
               $('#txtClimate').html('');
             }

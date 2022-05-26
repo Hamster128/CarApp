@@ -194,12 +194,16 @@ function loadConfig() {
 async function main() {
 
   try {
-    console.log('starting...');
+    console.log('loadConfig');
 
     loadConfig();
 
+    console.log('VwWeConnect');
+
     vwConn = new api.VwWeConnect();
   
+    console.log('setConfig');
+
     vwConn.setLogLevel("INFO"); // optional, ERROR (default), INFO, WARN or DEBUG
     vwConn.setCredentials(Config.email, Config.pwd, '');
     vwConn.setConfig("seatcupra"); // type
@@ -208,7 +212,11 @@ async function main() {
   
     vwConn.onNewData = onNewData;
   
+    console.log('getData');
+
     await vwConn.getData();
+
+    console.log('ready');
 
   } catch(e) {
     console.error('ERROR ' + e);
