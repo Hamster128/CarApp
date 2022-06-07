@@ -203,20 +203,22 @@ async function onNewData() {
 
   sendData2abrp();
 
-  // stop polling when not needed
-  if(!cnt && (ChargeLimit == 100 || vwConn.vehicles[0].charging.status.charging.chargePower_kW == 0) ) {
+  if(updateTimeout) {
     return;
   }
 
-  if(updateTimeout) {
-    return;
+  let secs = Config.refresh_secs;
+
+  // slow polling when not needed
+  if(!cnt && (ChargeLimit == 100 || vwConn.vehicles[0].charging.status.charging.chargePower_kW == 0) ) {
+    secs = Config.slow_refresh_secs;
   }
 
   // start next polling
   updateTimeout = setTimeout(function() {
     vwConn.update();
     updateTimeout = null;
-  }, Config.refresh_secs * 1000);
+  }, secs * 1000);
 }
 
 //-------------------------------------------------------------------------------------------
