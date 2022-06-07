@@ -15,6 +15,7 @@ let server;
 let activeCommands = {}; 
 let updateTimeout;
 let ChargeLimit = 100;
+let lastStamp;
 
 //-------------------------------------------------------------------------------------------
 function sendCurrentData(socket, newData) {
@@ -45,10 +46,16 @@ async function sendData2abrp() {
 
   let data = vwConn.vehicles[0];
 
-  let stamp = moment.utc(data.charging.status.battery.carCapturedTimestamp);
+  let stamp = moment.utc(data.charging.status.battery.carCapturedTimestamp).unix();
+
+  if(stamp == lastStamp) {
+    return;
+  }
+
+  lastStamp = stamp;
 
   let doc = {
-    "utc": stamp.unix(),
+    "utc": stamp,
     "soc": data.charging.status.battery.currentSOC_pct,
     "is_charging":  data.charging.status.charging.chargePower_kW ? 1 : 0,
     "power": data.charging.status.charging.chargePower_kW,
