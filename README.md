@@ -1,6 +1,6 @@
 # CarApp
 Node.js express application which delivers a car control web app<br/>
-Currentlly only working with Cupra Born
+Currentlly only working with Cupra Born<br/>
 Can also send live data to abrp (a better route planner)
 
 ## Setup
