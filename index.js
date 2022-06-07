@@ -2,6 +2,7 @@ const fs = require('fs');
 const http = require('http');
 const express = require('express')
 const moment = require('moment')
+const axios = require('axios')
 
 const api = require('./npm-vwconnectapi');
 
@@ -33,6 +34,38 @@ function sendCurrentData(socket, newData) {
   vwConn.vehicles[0].newData = newData;
   
   socket.emit('data', vwConn.vehicles[0]);
+}
+
+//-------------------------------------------------------------------------------------------
+async function sendData2abrp() {
+
+  if(!Config['abrp_user_token'] || !Config.abrp_user_token.length) {
+    return;
+  }
+
+  let data = vwConn.vehicles[0];
+
+  let stamp = moment.utc(data.charging.status.battery.carCapturedTimestamp);
+
+  let doc = {
+    "utc": stamp.unix(),
+    "soc": data.charging.status.battery.currentSOC_pct,
+    "is_charging":  data.charging.status.charging.chargePower_kW ? 1 : 0,
+    "power": data.charging.status.charging.chargePower_kW,
+    "car_model":"cupra:born:21:58:meb"  // https://api.iternio.com/1/tlm/get_carmodels_list?
+  };
+
+  doc = JSON.stringify(doc);
+  doc = encodeURIComponent(doc);
+
+  let url = `https://api.iternio.com/1/tlm/send?token=${Config.abrp_user_token}&api_key=${Config.abrp_api_key}&tlm=${doc}`;
+
+  try {
+    let res = await axios.get(url);
+  } catch(e) {
+    console.log(`Error sending 2 abrp ${e}`);
+  }
+
 }
 
 //-------------------------------------------------------------------------------------------
@@ -167,6 +200,8 @@ async function onNewData() {
     ChargeLimit = 100;
     onNewData();
   }
+
+  sendData2abrp();
 
   // stop polling when not needed
   if(!cnt && (ChargeLimit == 100 || vwConn.vehicles[0].charging.status.charging.chargePower_kW == 0) ) {

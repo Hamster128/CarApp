@@ -6,5 +6,7 @@
   "index_path": "/index.html",
   "widget_path": "/widget.html",
   "command_timeout_secs": 180,
-  "refresh_secs": 5
+  "refresh_secs": 5,
+  "abrp_api_key": "d49234a5-2553-454e-8321-3fe30b49aa64",
+  "abrp_user_token": ""
 }
