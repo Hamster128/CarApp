@@ -98,6 +98,17 @@ async function doCommand(data) {
 }
 
 //-------------------------------------------------------------------------------------------
+function requestUpdate() {
+
+  if(updateTimeout) {
+    clearTimeout(updateTimeout);
+    updateTimeout = null;
+  }
+
+  vwConn.update();
+}
+
+//-------------------------------------------------------------------------------------------
 function startServer() {
   server = http.createServer(app);
 
@@ -161,7 +172,7 @@ function startServer() {
 
     //-------------------------------------------------------------------------------------------
     socket.on('update', async function() {
-      vwConn.update();
+      requestUpdate();
     });
 
     //-------------------------------------------------------------------------------------------
@@ -173,7 +184,7 @@ function startServer() {
 
     //-------------------------------------------------------------------------------------------
     sendCurrentData(socket);
-    vwConn.update();
+    requestUpdate();
   });
 
 }
@@ -201,7 +212,7 @@ async function onNewData() {
     if(!activeCommands['charging'] || activeCommands['charging'].state != 'stop') {
       console.log('charging limit reached, stopping charging ' + vwConn.vehicles[0].charging.status.battery.currentSOC_pct + '>=' + ChargeLimit);
       await doCommand({action: 'charging', state: 'stop'});
-      vwConn.update();
+      requestUpdate();
     }
 
     ChargeLimit = 100;

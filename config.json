@@ -8,7 +8,7 @@
   "command_timeout_secs": 180,
   "refresh_secs": 5,
   "slow_refresh_secs": 300,
-  "drive_refresh_secs": 60,
+  "drive_refresh_secs": 30,
   "abrp_api_key": "9552e0b7-e367-4168-803e-c76a5b61005a",
   "abrp_user_token": ""
 }
