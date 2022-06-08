@@ -234,7 +234,7 @@ async function onNewData() {
     let stamp = moment.utc(data.charging.status.battery.carCapturedTimestamp);
     let age = moment().diff(stamp, 's');
     
-    if(age >= 300) {
+    if(age >= Config.slow_refresh_age_secs) {
       secs = Config.slow_refresh_secs;
     } else {
       secs = Config.drive_refresh_secs;
