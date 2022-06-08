@@ -15,7 +15,7 @@ let server;
 let activeCommands = {}; 
 let updateTimeout;
 let ChargeLimit = 100;
-let lastStamp;
+let lastStamp, lastPollingInterval;
 
 //-------------------------------------------------------------------------------------------
 function sendCurrentData(socket, newData) {
@@ -218,7 +218,23 @@ async function onNewData() {
 
   // slow polling when not needed
   if(!cnt && (ChargeLimit == 100 || vwConn.vehicles[0].charging.status.charging.chargePower_kW == 0) ) {
-    secs = Config.slow_refresh_secs;
+
+    let data = vwConn.vehicles[0];
+    let stamp = moment.utc(data.charging.status.battery.carCapturedTimestamp);
+    let age = moment().diff(stamp, 's');
+    
+    if(age >= 300) {
+      secs = Config.slow_refresh_secs;
+    } else {
+      secs = Config.drive_refresh_secs;
+    }
+
+    console.log(`data age is ${age} secs`);
+  }
+
+  if(secs != lastPollingInterval) {
+    lastPollingInterval = secs;
+    console.log(`now polling in ${secs} secs`);
   }
 
   // start next polling
