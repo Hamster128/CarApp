@@ -215,20 +215,6 @@
           var socTime;
 
           // -----------------------------------------------------------------------------------------------
-          var config = window.localStorage.getItem('cupraAppConfig');
-
-          if(!config) {
-            config = {
-              temp: 21
-            };
-          } else {
-            config = JSON.parse(config);
-          }
-
-          $('#climatemp').html(config.temp+"°C");
-          $('#climatemp_slider').prop('value', config.temp);
-
-          // -----------------------------------------------------------------------------------------------
           // currently not working
           function clickSettings() {
             $('#divSettings').css("visibility", "visible");
@@ -275,8 +261,9 @@
           // -----------------------------------------------------------------------------------------------
           function sendClimateSettings() {
 
-            let temp = config.temp + 273.15;  // C -> K
-              socket.emit('command', {action: 'climatisation', state: 'settings', body: {"targetTemperature_K": temp}});
+            let temp = parseFloat($('#climatemp_slider').prop('value'));
+            temp += 273.15;  // C -> K
+            socket.emit('command', {action: 'climatisation', state: 'settings', body: {"targetTemperature_K": temp}});
           }
 
           // -----------------------------------------------------------------------------------------------
@@ -335,8 +322,6 @@
 
           // -----------------------------------------------------------------------------------------------
           function setClimaTemp(temp) {
-            config.temp = parseFloat(temp);
-            window.localStorage.setItem('cupraAppConfig', JSON.stringify(config));
             sendClimateSettings();
           }
 
@@ -491,11 +476,35 @@
               }
             }
 
+            // ---------------------------------------- CLIMATISATION SETTINGS-------------------------------------
+            $('#climatemp').removeClass('green');
+
+            let temp;
+
+            if(data.activeCommands['climatisation_settings']) {
+
+              if(data.activeCommands['climatisation_settings'].body.targetTemperature_K != data.climatisation_settings.settings.targetTemperature_K) {
+                $('#climatemp').addClass('green');
+              }
+
+              temp = data.activeCommands['climatisation_settings'].body.targetTemperature_K - 273.15;  // K -> C
+
+            } else {
+              temp = data.climatisation_settings.settings.targetTemperature_K - 273.15;  // K -> C
+            }
+
+            $('#climatemp').html(temp+"°C");
+            $('#climatemp_slider').prop('value', temp);
+
             // ---------------------------------------- CLIMATISATION TEXT ----------------------------------------
             if(data.climatisation.data.climatisationStatus.climatisationState != 'off') {
-              $('#txtClimate').html(data.climatisation.data.climatisationStatus.remainingClimatisationTime_min+' min');
+
+              let remainingMin   = data.climatisation.data.climatisationStatus.remainingClimatisationTime_min;
+              let progressBarPct = data.status.services.climatisation.progressBarPct;
+
+              $('#txtClimate').html(`${remainingMin} min`);
             } else {
-              $('#txtClimate').html('');
+              $('#txtClimate').html(`${temp}°C`);
             }
 
           });
