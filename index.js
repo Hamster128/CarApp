@@ -31,7 +31,7 @@ function sendCurrentData(socket, newData) {
   }
 
   vwConn.vehicles[0].activeCommands = activeCommands;
-  vwConn.vehicles[0].charge_imit = ChargeLimit;
+  vwConn.vehicles[0].charge_limit = ChargeLimit;
   vwConn.vehicles[0].newData = newData;
   
   socket.emit('data', vwConn.vehicles[0]);
@@ -78,19 +78,25 @@ async function sendData2abrp() {
 //-------------------------------------------------------------------------------------------
 async function doCommand(data) {
 
-  console.log(`doCommand ${data.action} ${data.state}...`);
+  console.log(`doCommand ${data.action} ${data.state} ${JSON.stringify(data.body)}...`);
 
   try {
     await vwConn.setSeatCupraStatus(vwConn.vehicles[0].vin, data.action, data.state, data.body);
   } catch(e) {
-    console.errro(`doCommand ${data.action} ${data.state}...${e}`);
-    sendCurrentData(socket);
+    console.error(`doCommand ${data.action} ${data.state}...${e}`);
     return false;
   }
 
-  activeCommands[data.action] = {
+  let key = data.action;
+
+  if(data.state == "settings") {
+    key += '_' + data.state;
+  }
+
+  activeCommands[key] = {
+    "stamp": moment().utc(),
     "state": data.state,
-    "stamp": moment().utc()
+    "body" : data.body
   };
 
   console.log(`doCommand ${data.action} ${data.state}...ok`);
@@ -152,6 +158,17 @@ function startServer() {
   });
 
   //-------------------------------------------------------------------------------------------
+  app.get('/data', async function (req, res) {
+
+    if(req.query.key != Config.api_key) {
+      res.send('-ERROR');
+      return;
+    }
+
+    res.send(vwConn.vehicles[0]);
+  });
+
+  //-------------------------------------------------------------------------------------------
   // Handle connection
   io.on('connection', function (socket) {
 
@@ -187,6 +204,30 @@ function startServer() {
     requestUpdate();
   });
 
+}
+
+//----------------------------------------------------------------------------------------------------------------
+// get token from BotFather bot
+// get chat_id (=your id) with https://api.telegram.org/bot1376869287:AAGVGrhIqBF5zw4E5OE4iU_5jv5QZOuO-WQ/getUpdates after sending a message from you
+async function sendTelegram(text) {
+
+	let data = { 
+    'parse_mode': 'HTML', 
+    'text' : text
+  };
+
+	let url = "https://api.telegram.org/bot" + Config.telegram_token + "/sendMessage?chat_id=" + Config.telegram_chat_id;
+
+  try {
+    let res = await axios.post(url, data);
+
+    if(res.statusCode >= 400) {
+      console.log('ERROR: sendTelegram ' + JSON.stringify(res));
+    }
+  
+  } catch(e) {
+    console.log('ERROR: sendTelegram ' + JSON.stringify(e));
+  }
 }
 
 //-------------------------------------------------------------------------------------------
@@ -244,6 +285,11 @@ async function onNewData() {
   }
 
   if(secs != lastPollingInterval) {
+
+    if(Config.telegram_on_wakeup && lastPollingInterval == Config.slow_refresh_secs && secs == Config.drive_refresh_secs) {
+      sendTelegram('car woke up');
+    }
+
     lastPollingInterval = secs;
     console.log(`now polling in ${secs} secs`);
   }
@@ -303,109 +349,127 @@ main();
 /*
 
 {
- "vin": "VSSZZZK1ZNP003241",
- "enrollmentStatus": "completed",
- "userRole": "primary",
- "vehicleNickname": "Schneehase",
- "specifications": {
-  "salesType": "K11B3C",
-  "colors": {
-   "exterior": "2Y",
-   "interior": "UC",
-   "roof": "2Y"
-  },
-  "wheels": {
-   "rims": "C8I",
-   "tires": "J50"
-  },
-  "steeringRight": false,
-  "sunroof": false,
-  "heatedSeats": true,
-  "marketEntry": 2
- },
- "charging": {
-  "status": {
-   "battery": {
-    "carCapturedTimestamp": "2022-03-25T11:47:22Z",
-    "currentSOC_pct": 67,
-    "cruisingRangeElectric_km": 243
-   },
-   "charging": {
-    "carCapturedTimestamp": "2022-03-25T11:47:22Z",
-    "chargingState": "readyForCharging",
-    "chargeType": "invalid",
-    "chargeMode": "manual",
-    "chargingSettings": "default",
-    "remainingChargingTimeToComplete_min": 0,
-    "chargePower_kW": 0,
-    "chargeRate_kmph": 0
-   },
-   "plug": {
-    "carCapturedTimestamp": "2022-03-25T11:47:41Z",
-    "plugConnectionState": "disconnected",
-    "plugLockState": "unlocked",
-    "externalPower": "unavailable"
-   }
-  }
- },
- "climatisation": {
-  "data": {
-   "climatisationStatus": {
-    "carCapturedTimestamp": "2022-03-25T11:47:45Z",
-    "remainingClimatisationTime_min": 0,
-    "climatisationState": "off",
-    "climatisationTrigger": "off"
-   },
-   "windowHeatingStatus": {
-    "carCapturedTimestamp": "2022-03-25T11:47:25Z",
-    "windowHeatingStatus": [
-     {
-      "windowLocation": "front",
-      "windowHeatingState": "off"
-     },
-     {
-      "windowLocation": "rear",
-      "windowHeatingState": "off"
-     }
-    ]
-   }
-  }
- },
- "status": {
-  "engines": {
-   "primary": {
-    "type": "EV",
-    "fuelType": "EV",
-    "range": {
-     "value": 243,
-     "unit": "Km"
+  "vin": "VSSZZZK1Z...",
+  "enrollmentStatus": "completed",
+  "userRole": "primary",
+  "vehicleNickname": "Schneehase",
+  "specifications": {
+    "salesType": "K11B3C",
+    "colors": {
+      "exterior": "2Y",
+      "interior": "UC",
+      "roof": "2Y"
     },
-    "level": 67
-   },
-   "secondary": {
-    "type": null,
-    "fuelType": null,
-    "range": null,
-    "level": null
-   }
+    "wheels": {
+      "rims": "C8I",
+      "tires": "J50"
+    },
+    "steeringRight": false,
+    "sunroof": false,
+    "heatedSeats": true,
+    "marketEntry": 2
   },
-  "services": {
-   "charging": {
-    "status": "NotReadyForCharging",
-    "targetPct": 80,
-    "chargeMode": "manual",
-    "active": false,
-    "remainingTime": 0,
-    "progressBarPct": 84
-   },
-   "climatisation": {
-    "status": "Off",
-    "active": false,
-    "remainingTime": 0,
-    "progressBarPct": 0
-   }
+  "status": {
+    "engines": {
+      "primary": {
+        "type": "EV",
+        "fuelType": "EV",
+        "range": {
+          "value": 152,
+          "unit": "Km"
+        },
+        "level": 36
+      },
+      "secondary": {
+        "type": null,
+        "fuelType": null,
+        "range": null,
+        "level": null
+      }
+    },
+    "services": {
+      "charging": {
+        "status": "NotReadyForCharging",
+        "targetPct": 80,
+        "chargeMode": "manual",
+        "active": false,
+        "remainingTime": 0,
+        "progressBarPct": 45
+      },
+      "climatisation": {
+        "status": "Ventilation",
+        "targetTemperatureKelvin": 295.15,
+        "active": true,
+        "remainingTime": 28,
+        "progressBarPct": 0
+      }
+    }
+  },
+  "charging": {
+    "status": {
+      "battery": {
+        "carCapturedTimestamp": "2022-08-25T10:04:44Z",
+        "currentSOC_pct": 36,
+        "cruisingRangeElectric_km": 152
+      },
+      "charging": {
+        "carCapturedTimestamp": "2022-08-25T10:04:44Z",
+        "chargingState": "readyForCharging",
+        "chargeType": "invalid",
+        "chargeMode": "manual",
+        "chargingSettings": "default",
+        "remainingChargingTimeToComplete_min": 0,
+        "chargePower_kW": 0,
+        "chargeRate_kmph": 0
+      },
+      "plug": {
+        "carCapturedTimestamp": "2022-08-25T10:04:39Z",
+        "plugConnectionState": "disconnected",
+        "plugLockState": "unlocked",
+        "externalPower": "unavailable"
+      }
+    }
+  },
+  "charging_settings": {
+    "settings": {
+      "maxChargeCurrentAC": "maximum",
+      "carCapturedTimestamp": "2022-08-25T10:04:39Z",
+      "autoUnlockPlugWhenCharged": "permanent",
+      "targetSoc_pct": 80
+    }
+  },
+  "climatisation_settings": {
+    "settings": {
+      "windowHeatingEnabled": true,
+      "zoneFrontLeftEnabled": true,
+      "zoneFrontRightEnabled": false,
+      "carCapturedTimestamp": "2022-08-25T10:04:39Z",
+      "targetTemperature_K": 295.15,
+      "climatizationAtUnlock": true
+    }
+  },
+  "climatisation": {
+    "data": {
+      "climatisationStatus": {
+        "carCapturedTimestamp": "2022-08-25T10:07:44Z",
+        "remainingClimatisationTime_min": 27,
+        "climatisationState": "ventilation",
+        "climatisationTrigger": "manual"
+      },
+      "windowHeatingStatus": {
+        "carCapturedTimestamp": "2022-08-25T10:04:38Z",
+        "windowHeatingStatus": [
+          {
+            "windowLocation": "front",
+            "windowHeatingState": "off"
+          },
+          {
+            "windowLocation": "rear",
+            "windowHeatingState": "off"
+          }
+        ]
+      }
+    }
   }
- }
 }
-
 */

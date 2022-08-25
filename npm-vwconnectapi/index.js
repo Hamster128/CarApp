@@ -2074,6 +2074,66 @@ class VwWeConnect {
         await new Promise((resolve, reject) => {
             request.get(
                 {
+                    url: "https://ola.prod.code.seat.cloud.vwgroup.com/vehicles/" + vin + "/charging/settings",
+
+                    headers: {
+                        accept: "*/*",
+                        "user-agent": this.userAgent,
+                        "accept-language": "de-de",
+                        authorization: "Bearer " + this.config.atoken,
+                    },
+                    followAllRedirects: true,
+                    gzip: true,
+                    json: true,
+                },
+                (err, resp, body) => {
+                    if (err || (resp && resp.statusCode >= 400)) {
+                        err && this.log.error(err);
+                        resp && this.log.error(resp.statusCode.toString());
+                        body && this.log.error(JSON.stringify(body));
+                        return;
+                    }
+                    this.log.debug(JSON.stringify(body));
+
+                    vehicle.charging_settings = body;
+                    resolve();
+                }
+            );
+        });
+
+        await new Promise((resolve, reject) => {
+            request.get(
+                {
+                    url: "https://ola.prod.code.seat.cloud.vwgroup.com/vehicles/" + vin + "/climatisation/settings",
+
+                    headers: {
+                        accept: "*/*",
+                        "user-agent": this.userAgent,
+                        "accept-language": "de-de",
+                        authorization: "Bearer " + this.config.atoken,
+                    },
+                    followAllRedirects: true,
+                    gzip: true,
+                    json: true,
+                },
+                (err, resp, body) => {
+                    if (err || (resp && resp.statusCode >= 400)) {
+                        err && this.log.error(err);
+                        resp && this.log.error(resp.statusCode.toString());
+                        body && this.log.error(JSON.stringify(body));
+                        return;
+                    }
+                    this.log.debug(JSON.stringify(body));
+
+                    vehicle.climatisation_settings = body;
+                    resolve();
+                }
+            );
+        });
+
+        await new Promise((resolve, reject) => {
+            request.get(
+                {
                     url: "https://ola.prod.code.seat.cloud.vwgroup.com/vehicles/" + vin + "/climatisation/status",
 
                     headers: {
@@ -2115,19 +2175,21 @@ class VwWeConnect {
                     accept: "*/*",
                     "user-agent": this.userAgent,
                     "accept-language": "de-de",
-                    authorization: "Bearer " + this.config.atoken,
+                    authorization: "Bearer " + this.config.atoken
                 },
                 followAllRedirects: true,
                 gzip: true,
                 json: true,
+                method: "POST"
             }
 
             if(body) {
                 opts.body = body;
                 opts.method = "PUT";
+                opts.headers["content-type"] = "application/json";
             }
 
-            request.post(opts, (err, resp, body) => {
+            request(opts, (err, resp, body) => {
                     if (err || (resp && resp.statusCode >= 400)) {
                         err && this.log.error(err);
                         resp && this.log.error(resp.statusCode.toString());

@@ -2,8 +2,12 @@
 <html>
     <head>
         <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width; height=device-height; initial-scale=1.0; maximum-scale=1.0; user-scalable=no;"/>
+        <meta name="apple-mobile-web-app-capable" content="yes"/>
+
         <title>Cupra</title>
         <style>
+
           .button {
             font-size: 60px;
           }
@@ -57,68 +61,182 @@
             background-image: url('/static/slider.png');
           }
 
-          @media (orientation: landscape) {
-            .pageWidth {
-              width:900px;
-              transform-origin: 0 0;
-              transform:scale(0.7);
-            }
+          .setslider {
+            height: 58px;
+            -webkit-appearance: none;
+            margin: 10px 0;
+            width: 100%;
+            background: #000;
+          }
+          .setslider::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 25px;
+            cursor: pointer;
+            animate: 0.2s;
+            box-shadow: 1px 1px 1px #000000;
+            background: #2081C9;
+            border-radius: 12px;
+            border: 1px solid #000000;
+          }
+          .setslider::-webkit-slider-thumb {
+            box-shadow: 1px 1px 1px #000000;
+            border: 1px solid #000000;
+            height: 70px;
+            width: 70px;
+            border-radius: 35px;
+            background: #FFFFFF;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -22px;
           }
 
+          input.switch {
+            width: 60px;
+            height: 60px;
+            margin-right: 30px;
+          }
+
+          .switch_label {
+            font-size: 50px;
+            cursor: pointer;
+          }
+
+          .switch_td {
+            padding-top:70px;
+          }
+
+          .page {
+            width: 100vw;
+            height: 100px;
+            background: #000;
+            margin:0px;
+            font-family: Arial, Helvetica, sans-serif; 
+            color:#AAA; 
+            font-size:50px;
+          }
+
+          @media (orientation: landscape) {
+            .page {
+              transform-origin: 0 0;
+              transform:scale(0.5);
+            }
+          }
         </style>
+
     </head>
-    <body class="pageWidth" style="font-family: Arial, Helvetica, sans-serif; background-color:#000; color:#AAA; font-size:50px; padding:30px;">
+    <body class="page">
       <script src="/static/socket.io.min.js"></script>
       <script src="/static/jquery-3.6.0.min.js"></script>
       <script src="/static/moment.min.js"></script>
       <script src="https://kit.fontawesome.com/e51bfceb96.js" crossorigin="anonymous"></script>
 
-      <h1 id="title" style="text-align: center;" onClick="update();">updateing...</h1>
-      <span id="debug"></span>
-      <br>
-      <br>
-      <table style="width:100%">
-        <tr>
-          <td><span id="soc_limit"></span>%&nbsp;</td>
-          <td style="text-align:right;">
-            <input type="range" min="10" max="100" step="5" value="50" class="slider" id="limit_slider" style="width:90%" onInput="changingChargeLimit(this.value);" onChange="setChargeLimit(this.value);">
-          </td>
-        </tr>
-        <tr>
-          <td width="10px"><span id="soc" style="font-size:80px;"></span>%&nbsp;</td>
-          <td><meter min=0 max=100 low="20" id="soc_meter" style="width:100%; height:80px;"></meter></td>
-        </tr>
-        <tr style="height:57px;">
-          <td></td>
-          <td style="text-align:center;"><span id="soc_time"></span></td>
-        </tr>
-      </table>
-      <br>
-      <br>
-      <br>
-      <table style="width:100%">
-        <tr>
-          <td class="symbol_td" onClick="clickCharging()"><i id="symCharging" class="fa-solid fa-plug-circle-xmark symbol"></i></td>
-          <td class="symbol_td" onClick="clickClimate()"><i id="symClimate" class="fa-solid fa-fan symbol"></i></td>
-        </tr>
-        <tr style="height:300px">
-          <td id="txtCharging" class="symbol_td"></td>
-          <td id="txtClimate" class="symbol_td"></td>
-        </tr>
-        <tr>
-          <td style="display:none" class="symbol_td" onClick="clickSettings()"><i id="symSettings" class="fa-solid fa-gear symbol"></i></td>
-        </tr>
-      </table>
+      <div style="position: relative; height:0px;">
+
+        <!-------------------------------------------------------------------------------------------------
+        -- main page
+        --------------------------------------------------------------------------------------------------->
+        <div style="position:absolute; z-index:10; width:100vw; height:90vh; top:0px;">
+          <table style="width:100%; padding:30px;">
+            <tr>
+              <td></td>
+              <td style="text-align: right;" onClick="clickSettings()"><i id="symSettings" class="fa-solid fa-gear symbol" style="font-size: 100px;"></i></td>
+            </tr>
+            <tr>
+              <td colspan=2>
+                <h1 id="title" style="text-align: center;" onClick="update();">updateing...</h1>
+                <br>
+              </td>
+            </tr>
+            <tr>
+              <td><span id="soc_limit"></span>&nbsp;</td>
+              <td>
+                <input type="range" min="0" max="100" step="10" value="50" class="slider" id="limit_slider" style="width:100%;" onInput="changingChargeLimit(this.value);" onChange="setChargeLimit(this.value);">
+              </td>
+            </tr>
+            <tr>
+              <td width="10px"><span id="soc" style="font-size:80px;"></span>%&nbsp;</td>
+              <td><meter min=0 max=100 low="20" id="soc_meter" value=80 style="width:100%; padding-left:36px; padding-right:36px; height:80px;"></meter></td>
+            </tr>
+            <tr style="height:57px;">
+              <td></td>
+              <td style="text-align:center;"><span id="soc_time"></span></td>
+            </tr>
+          </table>
+          <br>
+          <br>
+          <table style="width:100%">
+            <tr>
+              <td class="symbol_td" onClick="clickCharging()"><i id="symCharging" class="fa-solid fa-plug-circle-xmark symbol"></i></td>
+              <td class="symbol_td" onClick="clickClimate()"><i id="symClimate" class="fa-solid fa-fan symbol"></i></td>
+            </tr>
+            <tr style="height:100px">
+              <td id="txtCharging" class="symbol_td"></td>
+              <td id="txtClimate" class="symbol_td"></td>
+            </tr>
+            <tr><td style="height: 200px;"></td></tr>
+          </table>
+        </div>
+
+        <!-------------------------------------------------------------------------------------------------
+        -- settings page
+        --------------------------------------------------------------------------------------------------->
+        <div id="divSettings" style="visibility:hidden; position:absolute; z-index:20; top:0px; width:100vw; height:90vh; background-color: #000;">
+          <table style="width:100%; padding:50px;">
+            <tr>
+              <td style="text-align:right; font-size:100px;" onClick="closeSettings();"><i class="fa-regular fa-circle-xmark"></i></td>
+            </tr>
+            <tr><td style="height: 100px;"></td></tr>
+            <tr>
+              <td>
+                Stop charging remote at:&nbsp; <span id="soc_applimit"></span><br>
+                <input type="range" min="10" max="100" step="5" value="50" class="setslider" id="applimit_slider" style="width:100%;" onInput="changingAppChargeLimit(this.value);" onChange="setAppChargeLimit(this.value);">
+              </td>
+            </tr>
+            <tr><td style="height: 50px;"></td></tr>
+            <tr>
+              <td>
+                Climatization:&nbsp; <span id="climatemp"></span><br>
+                <input type="range" min="18" max="24" step="0.5" value="21" class="setslider" id="climatemp_slider" style="width:100%;" onInput="changingClimaTemp(this.value);" onChange="setClimaTemp(this.value);">
+              </td>
+            </tr>
+            <tr><td style="height: 50px;"></td></tr>
+            <tr>
+              <td class="switch_td"><label id="limit_ac_label" class="switch_label"><input type="checkbox" class="switch" id="limit_ac" onChange="changedLimitAC(this.checked);">Limit AC</label></td>
+            </tr>
+            <tr>
+              <td class="switch_td"><label id="auto_unlock_label" class="switch_label"><input type="checkbox" class="switch" id="auto_unlock" onChange="changedAutoUnlock(this.checked);">Auto Unlock</label></td>
+            </tr>
+          </table>
+        </div>
+      </div>
 
       <script>
           var socket = io('http://'+location.host);
-          var socTime, targetPct = 100;
+          var socTime;
+
+          // -----------------------------------------------------------------------------------------------
+          var config = window.localStorage.getItem('cupraAppConfig');
+
+          if(!config) {
+            config = {
+              temp: 21
+            };
+          } else {
+            config = JSON.parse(config);
+          }
+
+          $('#climatemp').html(config.temp+"°C");
+          $('#climatemp_slider').prop('value', config.temp);
 
           // -----------------------------------------------------------------------------------------------
           // currently not working
           function clickSettings() {
-            $('#symSettings').addClass('clicked');
-            socket.emit('command', {action: 'charging', state: 'settings', body: {"targetPct": 70}});
+            $('#divSettings').css("visibility", "visible");
+          }
+
+          // -----------------------------------------------------------------------------------------------
+          function closeSettings() {
+            $('#divSettings').css("visibility", "hidden");
           }
 
           // -----------------------------------------------------------------------------------------------
@@ -142,6 +260,9 @@
             if($('#symClimate').hasClass('grey')) {
 
               $('#symClimate').addClass('clicked');
+
+              sendClimateSettings();
+
               socket.emit('command', {action: 'climatisation', state: 'start'});
 
             } else {
@@ -152,32 +273,87 @@
           }
 
           // -----------------------------------------------------------------------------------------------
+          function sendClimateSettings() {
+
+            let temp = config.temp + 273.15;  // C -> K
+              socket.emit('command', {action: 'climatisation', state: 'settings', body: {"targetTemperature_K": temp}});
+          }
+
+          // -----------------------------------------------------------------------------------------------
           function update() {
             $('#title').html('updateing...');
             socket.emit('update');
           }
 
           // -----------------------------------------------------------------------------------------------
-          function changingChargeLimit(charge_imit) {
-            $('#soc_limit').html(charge_imit);
-          }
+          function changingChargeLimit(charge_limit) {
 
-          // -----------------------------------------------------------------------------------------------
-          function setChargeLimit(charge_imit) {
-            socket.emit('set_charge_limit', charge_imit);
-            displayChargeLimit(charge_imit);
-          }
-
-          // -----------------------------------------------------------------------------------------------
-          function displayChargeLimit(charge_imit) {
-            $('#limit_slider').prop('value', charge_imit);
-
-            if(targetPct < charge_imit) {
-              $('#soc_limit').html(targetPct);
-            } else {
-              $('#soc_limit').html(charge_imit);
+            if(charge_limit < 50) {
+              charge_limit = 50;
             }
-            
+
+            displayChargeLimit(charge_limit);
+          }
+
+          // -----------------------------------------------------------------------------------------------
+          function setChargeLimit(charge_limit) {
+            sendChargingSettings();
+          }
+
+          // -----------------------------------------------------------------------------------------------
+          function displayChargeLimit(charge_limit) {
+            $('#limit_slider').prop('value', charge_limit);
+
+            let app_limit = parseInt($('#applimit_slider').prop('value'));
+
+            if(app_limit < charge_limit) {
+              $('#soc_limit').html(app_limit+"%");
+            } else {
+              $('#soc_limit').html(charge_limit+"%");
+            }
+          }
+
+          // -----------------------------------------------------------------------------------------------
+          function changedLimitAC(checked) {
+            sendChargingSettings();
+          }
+
+          // -----------------------------------------------------------------------------------------------
+          function changingAppChargeLimit(charge_imit) {
+            $('#soc_applimit').html(charge_imit+"%");
+          }
+
+          // -----------------------------------------------------------------------------------------------
+          function setAppChargeLimit(charge_imit) {
+            socket.emit('set_charge_limit', charge_imit);
+          }
+
+          // -----------------------------------------------------------------------------------------------
+          function changingClimaTemp(temp) {
+            $('#climatemp').html(temp+"°C");
+          }
+
+          // -----------------------------------------------------------------------------------------------
+          function setClimaTemp(temp) {
+            config.temp = parseFloat(temp);
+            window.localStorage.setItem('cupraAppConfig', JSON.stringify(config));
+            sendClimateSettings();
+          }
+
+          // -----------------------------------------------------------------------------------------------
+          function changedAutoUnlock(checked) {
+            sendChargingSettings();
+          }
+
+          // -----------------------------------------------------------------------------------------------
+          function sendChargingSettings() {
+
+            socket.emit('command', {action: 'charging', state: 'settings', body: {
+              "autoUnlockPlugWhenCharged": $('#auto_unlock').prop('checked') ? "permanent" : "off",
+              "maxChargeCurrentAC": $('#limit_ac').prop('checked') ? "reduced" : "maximum",
+              "targetSoc_pct": $('#limit_slider').prop('value')
+            }});
+
           }
 
           // -----------------------------------------------------------------------------------------------
@@ -192,7 +368,6 @@
 
           // -----------------------------------------------------------------------------------------------
           socket.on('data', function (data) {
-            //$('#debug').html(moment().format());
 
             if(data.newData) {
               $('#title').html(data.vehicleNickname);
@@ -205,8 +380,41 @@
             updateSOCtime();
 
             // ---------------------------------------- CHARGING LIMIT ----------------------------------------
-            targetPct = data.status.services.charging.targetPct;
-            displayChargeLimit(data.charge_imit);
+            $('#soc_applimit').html(data.charge_limit+"%");
+            $('#applimit_slider').prop('value', data.charge_limit);
+
+            $('#soc_limit').removeClass('green');
+            $('#limit_ac_label').removeClass('green');
+            $('#auto_unlock_label').removeClass('green');
+
+            if(data.activeCommands['charging_settings']) {
+
+              if(data.activeCommands['charging_settings'].body.targetSoc_pct != data.status.services.charging.targetPct) {
+                $('#soc_limit').addClass('green');
+              }
+
+              displayChargeLimit(data.activeCommands['charging_settings'].body.targetSoc_pct);
+
+
+              if(data.activeCommands['charging_settings'].body.maxChargeCurrentAC != data.charging_settings.settings.maxChargeCurrentAC) {
+                $('#limit_ac_label').addClass('green');
+              }
+
+              $('#limit_ac').prop('checked', data.activeCommands['charging_settings'].body.maxChargeCurrentAC == "reduced");  // maximum / reduced
+
+
+              if(data.activeCommands['charging_settings'].body.autoUnlockPlugWhenCharged != data.charging_settings.settings.autoUnlockPlugWhenCharged) {
+                $('#auto_unlock_label').addClass('green');
+              }
+
+              $('#auto_unlock').prop('checked', data.activeCommands['charging_settings'].body.autoUnlockPlugWhenCharged == "permanent");  // permanent / off
+
+            } else {
+              displayChargeLimit(data.status.services.charging.targetPct);
+              $('#limit_ac').prop('checked', data.charging_settings.settings.maxChargeCurrentAC == "reduced");  // maximum / reduced
+              $('#auto_unlock').prop('checked', data.charging_settings.settings.autoUnlockPlugWhenCharged == "permanent");  // permanent / off
+            }
+
 
             // ---------------------------------------- CHARGING SYMBOL ----------------------------------------
             $('#symCharging').removeClass(['fa-plug-circle-check', 'fa-plug-circle-xmark', 'fa-plug-circle-minus', 'white', 'grey', 'red', 'clicked']);
@@ -244,8 +452,16 @@
 
             // ---------------------------------------- CHARGING TEXT ----------------------------------------
             if(data.charging.status.charging.chargePower_kW) {
+
+              let finishedIn = moment.duration(data.status.services.charging.remainingTime, 'minutes');
+              let socAge     = moment().diff(socTime);
+              finishedIn.subtract(socAge, 'ms');
+              let finishedAt = moment().add(finishedIn);
+
               $('#txtCharging').html('<span class="kw">'+data.charging.status.charging.chargePower_kW + '&nbsp;kW</span><br>' + 
-                                      data.status.services.charging.remainingTime + '&nbsp;mins&nbsp;&gt;&nbsp;' + data.status.services.charging.targetPct + '&nbsp;kWh');
+                                     moment.utc(finishedIn.asMilliseconds()).format('HH:mm') + '&nbsp;&gt;&nbsp;' + 
+                                     data.status.services.charging.targetPct + '%&nbsp;' + 
+                                     finishedAt.format('HH:mm'));
             } else {
               $('#txtCharging').html('');
             }
