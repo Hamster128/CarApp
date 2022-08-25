@@ -208,7 +208,7 @@ function startServer() {
 
 //----------------------------------------------------------------------------------------------------------------
 // get token from BotFather bot
-// get chat_id (=your id) with https://api.telegram.org/bot1376869287:AAGVGrhIqBF5zw4E5OE4iU_5jv5QZOuO-WQ/getUpdates after sending a message from you
+// get chat_id (=your id) with https://api.telegram.org/bot1...7287:A...ZOuO-WQ/getUpdates after sending a message from you
 async function sendTelegram(text) {
 
 	let data = { 
