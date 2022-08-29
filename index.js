@@ -15,7 +15,7 @@ let server;
 let activeCommands = {}; 
 let updateTimeout;
 let ChargeLimit = 100;
-let lastStamp, lastPollingInterval;
+let lastStamp, prevStamp, lastPollingInterval;
 
 //-------------------------------------------------------------------------------------------
 function sendCurrentData(socket, newData) {
@@ -52,6 +52,9 @@ async function sendData2abrp() {
     return;
   }
 
+  console.log('sendData2abrp...');
+
+  prevStamp = lastStamp;
   lastStamp = stamp;
 
   let doc = {
@@ -69,8 +72,10 @@ async function sendData2abrp() {
 
   try {
     let res = await axios.get(url);
+    console.log(`sendData2abrp ${JSON.stringify(res.data)}`);
   } catch(e) {
     console.log(`Error sending 2 abrp ${e}`);
+    lastStamp = prevStamp;
   }
 
 }
