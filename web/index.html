@@ -466,7 +466,7 @@
               } else {
                 $('#symClimate').addClass('grey');
               }
-            } else if(data.climatisation.data.climatisationStatus.climatisationState == 'off') {
+            } else if(!data.status.services.climatisation.active) {
               $('#symClimate').addClass('grey');
             } else {
               if(data.climatisation.data.climatisationStatus.climatisationState == 'heating') {
@@ -497,7 +497,7 @@
             $('#climatemp_slider').prop('value', temp);
 
             // ---------------------------------------- CLIMATISATION TEXT ----------------------------------------
-            if(data.climatisation.data.climatisationStatus.climatisationState != 'off') {
+            if(data.status.services.climatisation.active) {
 
               let remainingMin   = data.climatisation.data.climatisationStatus.remainingClimatisationTime_min;
               let progressBarPct = data.status.services.climatisation.progressBarPct;
