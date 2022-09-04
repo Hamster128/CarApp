@@ -105,9 +105,8 @@
             padding-top:70px;
           }
 
-          .page {
-            width: 100vw;
-            height: 100px;
+          html, body {
+
             background: #000;
             margin:0px;
             font-family: Arial, Helvetica, sans-serif; 
@@ -116,7 +115,7 @@
           }
 
           @media (orientation: landscape) {
-            .page {
+            body {
               transform-origin: 0 0;
               transform:scale(0.5);
             }
@@ -124,18 +123,19 @@
         </style>
 
     </head>
-    <body class="page">
+    <body>
       <script src="/static/socket.io.min.js"></script>
       <script src="/static/jquery-3.6.0.min.js"></script>
       <script src="/static/moment.min.js"></script>
       <script src="https://kit.fontawesome.com/e51bfceb96.js" crossorigin="anonymous"></script>
+      <script src="/static/dont_scroll.js"></script>
 
-      <div style="position: relative; height:0px;">
+      <div style="position:absolute; width:100vw; height:100vh;">
 
         <!-------------------------------------------------------------------------------------------------
         -- main page
         --------------------------------------------------------------------------------------------------->
-        <div style="position:absolute; z-index:10; width:100vw; height:90vh; top:0px;">
+        <div style="position:absolute; z-index: 10; width:100vw; height:100vh; top:0px;">
           <table style="width:100%; padding:30px;">
             <tr>
               <td></td>
