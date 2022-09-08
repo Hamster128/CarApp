@@ -16,6 +16,7 @@ let activeCommands = {};
 let updateTimeout;
 let ChargeLimit = 100;
 let lastStamp, prevStamp, lastPollingInterval;
+let lastTargetTemp_K = 22.0 + 273.15; // C -> K
 
 //-------------------------------------------------------------------------------------------
 function sendCurrentData(socket, newData) {
@@ -242,6 +243,14 @@ async function onNewData() {
     startServer();
   }
 
+  // sometimes the target temperature is not available
+  if(vwConn.vehicles[0].climatisation_settings.settings.targetTemperature_K - 273.15 < 18.0) {
+    vwConn.vehicles[0].climatisation_settings.settings.targetTemperature_K = lastTargetTemp_K;
+  } else {
+    lastTargetTemp_K = vwConn.vehicles[0].climatisation_settings.settings.targetTemperature_K;
+  }
+
+  // send data to clients
   let cnt = 0;
 
   for(let key in clients) {
