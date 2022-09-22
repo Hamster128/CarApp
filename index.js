@@ -18,6 +18,14 @@ let ChargeLimit = 100;
 let lastStamp, prevStamp, lastPollingInterval;
 let lastTargetTemp_K = 22.0 + 273.15; // C -> K
 
+
+//-------------------------------------------------------------------------------------------
+let oldConsoleLog = console.log;
+console.log = function(txt) {
+
+  oldConsoleLog(moment().format('YYYY-MM-DD HH:mm:ss ') + txt);
+};
+
 //-------------------------------------------------------------------------------------------
 function sendCurrentData(socket, newData) {
 
@@ -67,15 +75,14 @@ async function sendData2abrp() {
   };
 
   doc = JSON.stringify(doc);
-  doc = encodeURIComponent(doc);
 
-  let url = `https://api.iternio.com/1/tlm/send?token=${Config.abrp_user_token}&api_key=${Config.abrp_api_key}&tlm=${doc}`;
+  let url = `https://api.iternio.com/1/tlm/send?token=${Config.abrp_user_token}&api_key=${Config.abrp_api_key}&tlm=${encodeURIComponent(doc)}`;
 
   try {
     let res = await axios.get(url);
-    console.log(`sendData2abrp ${JSON.stringify(res.data)}`);
+    console.log(`sendData2abrp ${doc} ${JSON.stringify(res.data)}`);
   } catch(e) {
-    console.log(`Error sending 2 abrp ${e}`);
+    console.log(`Error sending 2 abrp ${doc} ${e}`);
     lastStamp = prevStamp;
   }
 

@@ -133,6 +133,7 @@
       <script src="https://kit.fontawesome.com/e51bfceb96.js" crossorigin="anonymous"></script>
 
       <div style="position:absolute; width:100vw; height:100vh;">
+        <div id="divDebug" style="font-size: 25px;"></div>
 
         <!-------------------------------------------------------------------------------------------------
         -- main page
@@ -150,7 +151,7 @@
               </td>
             </tr>
             <tr>
-              <td><span id="soc_limit"></span>&nbsp;</td>
+              <td><span id="soc_limit"></span>%&nbsp;</td>
               <td>
                 <input type="range" min="0" max="100" step="10" value="50" class="slider" id="limit_slider" style="width:100%;" onInput="changingChargeLimit(this.value);" onChange="setChargeLimit(this.value);">
               </td>
@@ -215,6 +216,11 @@
       <script>
           var socket = io('http://'+location.host);
           var socTime;
+
+          function log(txt) {
+            console.log(txt);
+            $('#divDebug').append('<p>' + txt +'</p>');
+          }
 
           // -----------------------------------------------------------------------------------------------
           // currently not working
@@ -286,19 +292,21 @@
 
           // -----------------------------------------------------------------------------------------------
           function setChargeLimit(charge_limit) {
-            sendChargingSettings();
+
+            let chargeLimit = parseInt($('#soc_limit').html());
+            $('#limit_slider').prop('value', chargeLimit);
+
+            sendChargingSettings(chargeLimit);
           }
 
           // -----------------------------------------------------------------------------------------------
           function displayChargeLimit(charge_limit) {
-            $('#limit_slider').prop('value', charge_limit);
-
             let app_limit = parseInt($('#applimit_slider').prop('value'));
 
             if(app_limit < charge_limit) {
-              $('#soc_limit').html(app_limit+"%");
+              $('#soc_limit').html(app_limit);
             } else {
-              $('#soc_limit').html(charge_limit+"%");
+              $('#soc_limit').html(charge_limit);
             }
           }
 
@@ -335,12 +343,13 @@
           // -----------------------------------------------------------------------------------------------
           function sendChargingSettings() {
 
-            socket.emit('command', {action: 'charging', state: 'settings', body: {
+            let body = {
               "autoUnlockPlugWhenCharged": $('#auto_unlock').prop('checked') ? "permanent" : "off",
               "maxChargeCurrentAC": $('#limit_ac').prop('checked') ? "reduced" : "maximum",
               "targetSoc_pct": $('#limit_slider').prop('value')
-            }});
+            };
 
+            socket.emit('command', {action: 'charging', state: 'settings', body: body});
           }
 
           // -----------------------------------------------------------------------------------------------
