@@ -300,7 +300,12 @@
           }
 
           // -----------------------------------------------------------------------------------------------
-          function displayChargeLimit(charge_limit) {
+          function displayChargeLimit(charge_limit, setSlider) {
+
+            if(setSlider) {
+              $('#limit_slider').prop('value', charge_limit);
+            }
+
             let app_limit = parseInt($('#applimit_slider').prop('value'));
 
             if(app_limit < charge_limit) {
@@ -389,7 +394,7 @@
                 $('#soc_limit').addClass('green');
               }
 
-              displayChargeLimit(data.activeCommands['charging_settings'].body.targetSoc_pct);
+              displayChargeLimit(data.activeCommands['charging_settings'].body.targetSoc_pct, true);
 
 
               if(data.activeCommands['charging_settings'].body.maxChargeCurrentAC != data.charging_settings.settings.maxChargeCurrentAC) {
@@ -406,7 +411,7 @@
               $('#auto_unlock').prop('checked', data.activeCommands['charging_settings'].body.autoUnlockPlugWhenCharged == "permanent");  // permanent / off
 
             } else {
-              displayChargeLimit(data.status.services.charging.targetPct);
+              displayChargeLimit(data.status.services.charging.targetPct, true);
               $('#limit_ac').prop('checked', data.charging_settings.settings.maxChargeCurrentAC == "reduced");  // maximum / reduced
               $('#auto_unlock').prop('checked', data.charging_settings.settings.autoUnlockPlugWhenCharged == "permanent");  // permanent / off
             }
