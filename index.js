@@ -258,12 +258,9 @@ async function onNewData() {
   }
 
   // send data to clients
-  let cnt = 0;
-
   for(let key in clients) {
     let socket = clients[key];
     sendCurrentData(socket, true);
-    cnt++;
   }
 
   // check charge limit
@@ -279,6 +276,7 @@ async function onNewData() {
 
     ChargeLimit = 100;
     onNewData();
+    return;
   }
 
   sendData2abrp();
@@ -290,7 +288,7 @@ async function onNewData() {
   let secs = Config.refresh_secs;
 
   // slow polling when not needed
-  if(!cnt && (ChargeLimit == 100 || vwConn.vehicles[0].charging.status.charging.chargePower_kW == 0) ) {
+  if(!Object.keys(clients).length && !Object.keys(activeCommands).length && (ChargeLimit == 100 || vwConn.vehicles[0].charging.status.charging.chargePower_kW == 0) ) {
 
     let data = vwConn.vehicles[0];
     let stamp = moment.utc(data.charging.status.battery.carCapturedTimestamp);
@@ -315,10 +313,22 @@ async function onNewData() {
     console.log(`now polling in ${secs} secs`);
   }
 
-  // start next polling
-  updateTimeout = setTimeout(function() {
-    vwConn.update();
+  startNextUpdate(secs);
+}
+
+//-------------------------------------------------------------------------------------------
+function startNextUpdate(secs) {
+
+  updateTimeout = setTimeout(async function() {
+
     updateTimeout = null;
+
+    if(!await vwConn.update()) {
+      console.log('retry in 10 secs...');
+      startNextUpdate(10);
+      return;
+    }
+
   }, secs * 1000);
 }
 

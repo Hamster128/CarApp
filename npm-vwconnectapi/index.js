@@ -515,17 +515,24 @@ class VwWeConnect {
                             });
                         }
 
-                        this.update = function() {
+                        this.update = async function() {
                             if(!this.vinArray) {
-                                return;
+                                return true;
                             }
+                            
+                            for(let win of this.vinArray) {
 
-                            this.vinArray.forEach((vin) => {
-                                this.getSeatCupraStatus(vin).catch((e) => {
+                                try {
+                                    await this.getSeatCupraStatus(vin);
+                                } catch(e) {
                                     this.log.error("get seat status Failed "+e);
                                     this.refreshSeatCupraToken().catch(() => {});
-                                });
-                            });
+                                    return false;
+                                }
+
+                            }
+
+                            return true;
                         }
 /*
                         this.updateInterval = setInterval(() => {
