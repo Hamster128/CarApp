@@ -117,14 +117,17 @@ async function doCommand(data) {
 }
 
 //-------------------------------------------------------------------------------------------
-function requestUpdate() {
+async function requestUpdate() {
 
   if(updateTimeout) {
     clearTimeout(updateTimeout);
     updateTimeout = null;
   }
 
-  vwConn.update();
+  if(!vwConn.update()) {
+    console.log('retry in 10 secs...');
+    startNextUpdate(10);
+  }
 }
 
 //-------------------------------------------------------------------------------------------
