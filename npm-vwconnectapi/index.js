@@ -520,7 +520,7 @@ class VwWeConnect {
                                 return true;
                             }
                             
-                            for(let win of this.vinArray) {
+                            for(let vin of this.vinArray) {
 
                                 try {
                                     await this.getSeatCupraStatus(vin);
