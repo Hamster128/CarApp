@@ -6,7 +6,7 @@
   "index_path": "/index.html",
   "widget_path": "/widget.html",
   "command_timeout_secs": 180,
-  "refresh_secs": 5,
+  "refresh_secs": 6,
   "slow_refresh_secs": 300,
   "slow_refresh_age_secs": 900,
   "drive_refresh_secs": 30,

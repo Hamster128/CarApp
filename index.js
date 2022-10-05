@@ -124,7 +124,11 @@ async function requestUpdate() {
     updateTimeout = null;
   }
 
-  if(!vwConn.update()) {
+  try {
+    if(!vwConn.update()) {
+      throw `vwConn.update() failed!`;
+    }
+  } catch(e) {
     console.log('retry in 10 secs...');
     startNextUpdate(10);
   }
@@ -326,10 +330,13 @@ function startNextUpdate(secs) {
 
     updateTimeout = null;
 
-    if(!await vwConn.update()) {
-      console.log('retry in 10 secs...');
+    try {
+      if(!await vwConn.update()) {
+        throw "vwConn.update() failed!";
+      }
+    } catch(e) {
+      console.log(`${e} retry in 10 secs...`);
       startNextUpdate(10);
-      return;
     }
 
   }, secs * 1000);
@@ -371,7 +378,8 @@ async function main() {
 
   } catch(e) {
     console.error('ERROR ' + e);
-    process.exit(1);
+    console.log(`retry in 30 secs...`);
+    setInterval(main, 30000);
   }
 
 }
