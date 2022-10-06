@@ -26,7 +26,7 @@ class Log {
   }
 
   error(pMessage) {
-    console.log("ERROR: " + pMessage);
+    console.trace("ERROR: " + pMessage);
   }
 
   info(pMessage) {
@@ -1553,7 +1553,7 @@ class VwWeConnect {
                     if (err || (resp && resp.statusCode >= 400)) {
                         err && this.log.error(err);
                         resp && this.log.error(resp.statusCode);
-                        reject();
+                        return reject();
                     }
                     try {
                         if (body.errorCode) {
