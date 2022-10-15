@@ -6,6 +6,9 @@ const axios = require('axios')
 
 const api = require('./npm-vwconnectapi');
 
+const Con2log = require('./con2log.js');
+Con2log.keepFilesDays = 7;
+
 const app = express()
 
 let Config;
@@ -17,38 +20,6 @@ let updateTimeout;
 let ChargeLimit = 100;
 let lastStamp, prevStamp, lastPollingInterval;
 let lastTargetTemp_K = 22.0 + 273.15; // C -> K
-
-/*
-2022-10-05 16:07:21 loadConfig
-2022-10-05 16:07:21 VwWeConnect
-2022-10-05 16:07:21 setConfig
-2022-10-05 16:07:21 getData
-2022-10-05 16:07:26 ERROR: 500
-2022-10-05 16:07:26 ERROR: TypeError: Cannot read property 'forEach' of undefined
-2022-10-05 16:07:26 ERROR: TypeError: Cannot read property 'forEach' of undefined
-    at Request._callback (C:\CupraApp\npm-vwconnectapi\index.js:1599:43)
-    at Request.self.callback (C:\CupraApp\node_modules\request\request.js:185:22)
-    at Request.emit (events.js:311:20)
-    at Request.<anonymous> (C:\CupraApp\node_modules\request\request.js:1154:10)
-    at Request.emit (events.js:311:20)
-    at IncomingMessage.<anonymous> (C:\CupraApp\node_modules\request\request.js:1076:12)
-    at Object.onceWrapper (events.js:417:28)
-    at IncomingMessage.emit (events.js:323:22)
-    at endReadableNT (_stream_readable.js:1204:12)
-    at processTicksAndRejections (internal/process/task_queues.js:84:21)
-2022-10-05 16:07:26 ERROR: Not able to find vehicle, did you choose the correct type?
-(node:1272) UnhandledPromiseRejectionWarning: Get Vehicles Failed
-(node:1272) UnhandledPromiseRejectionWarning: Unhandled promise rejection. This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). To terminate the node process on unhandled promise rejection, use the CLI flag `--unhandled-rejections=strict` (see https://nodejs.org/api/cli.html#cli_unhandled_rejections_mode). (rejection id: 1)
-(node:1272) [DEP0018] DeprecationWarning: Unhandled promise rejections are deprecated. In the future, promise rejections that are not handled will terminate the Node.js process with a non-zero exit code.
-
-*/
-
-//-------------------------------------------------------------------------------------------
-let oldConsoleLog = console.log;
-console.log = function(txt) {
-
-  oldConsoleLog(moment().format('YYYY-MM-DD HH:mm:ss ') + txt);
-};
 
 //-------------------------------------------------------------------------------------------
 function sendCurrentData(socket, newData) {
@@ -351,7 +322,7 @@ function startNextUpdate(secs) {
     updateTimeout = null;
 
     if(!await vwConn.update()) {
-      console.log(`${e} retry in 10 secs...`);
+      console.log(`retry in 10 secs...`);
       startNextUpdate(10);
     }
 
@@ -395,7 +366,7 @@ async function main() {
   } catch(e) {
     console.error('ERROR ' + e);
     console.log(`retry in 30 secs...`);
-    setInterval(main, 30000);
+    setTimeout(main, 30000);
   }
 
 }
