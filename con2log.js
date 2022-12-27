@@ -79,3 +79,4 @@ function walkDir(dir, callback) {
   });
 };
 
+console.log('*** PROCESS START ***');

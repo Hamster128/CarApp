@@ -17,9 +17,16 @@ let clients = {};
 let server;
 let activeCommands = {}; 
 let updateTimeout;
-let ChargeLimit = 100;
-let lastStamp, prevStamp, lastPollingInterval;
+let lastStamp, lastStampStored, prevStamp, lastPollingInterval;
 let lastTargetTemp_K = 22.0 + 273.15; // C -> K
+let retrySecs = 10;
+
+let ClientConfig = {
+  chargeLimit: 100,
+  climatisationAt: false,
+  climatisationAtH: 7,
+  climatisationAtM: 0
+};
 
 //-------------------------------------------------------------------------------------------
 function sendCurrentData(socket, newData) {
@@ -35,7 +42,7 @@ function sendCurrentData(socket, newData) {
   }
 
   vwConn.vehicles[0].activeCommands = activeCommands;
-  vwConn.vehicles[0].charge_limit = ChargeLimit;
+  vwConn.vehicles[0].Config = ClientConfig;
   vwConn.vehicles[0].newData = newData;
   
   socket.emit('data', vwConn.vehicles[0]);
@@ -114,15 +121,17 @@ async function doCommand(data) {
 //-------------------------------------------------------------------------------------------
 async function requestUpdate() {
 
-  if(updateTimeout) {
-    clearTimeout(updateTimeout);
-    updateTimeout = null;
+  if(!updateTimeout) {
+    console.log('requestUpdate...update in progress');
+    return;
   }
 
-    if(!await vwConn.update()) {
-      console.log('retry in 10 secs...');
-      startNextUpdate(10);
-  }
+  // console.log('requestUpdate...');
+
+  clearTimeout(updateTimeout);
+  updateTimeout = null;
+
+  doUpdate();
 }
 
 //-------------------------------------------------------------------------------------------
@@ -196,6 +205,7 @@ function startServer() {
     socket.on('command', async function(data) {
       await doCommand(data);
       sendCurrentData(socket);
+      storeData(true);
     });
 
     //-------------------------------------------------------------------------------------------
@@ -204,11 +214,17 @@ function startServer() {
     });
 
     //-------------------------------------------------------------------------------------------
-    socket.on('set_charge_limit', async function(charge_limit) {
-      ChargeLimit = charge_limit;
+    socket.on('set_config', async function(config) {
+      ClientConfig = config;
+      saveClientConfig();
+      console.log('set_config', ClientConfig);
       onNewData();
     });
     
+    //-------------------------------------------------------------------------------------------
+    socket.on('log', async function(text) {
+      console.log(`CLIENT: ${text}`);
+    });
 
     //-------------------------------------------------------------------------------------------
     sendCurrentData(socket);
@@ -242,7 +258,75 @@ async function sendTelegram(text) {
 }
 
 //-------------------------------------------------------------------------------------------
+function sendProblem2clients(problem) {
+  // send data to clients
+  for(let key in clients) {
+    let socket = clients[key];
+    socket.emit('problem', problem);
+  }
+}
+
+//-------------------------------------------------------------------------------------------
+function storeData(force) {
+
+  if(!Config.store_data) {
+    return;
+  }
+
+  let data = vwConn.vehicles[0];
+
+  let carStamp = moment.utc(data.charging.status.battery.carCapturedTimestamp);
+  let stamp = carStamp.unix();
+
+  if(stamp == lastStampStored && !force) {
+    return;
+  }
+
+  lastStampStored = stamp;
+
+  let now = moment();
+
+  let logData = now.format('YYYY-MM-DD HH:mm:ss')
+    + ';' + carStamp.format('YYYY-MM-DD HH:mm:ss')
+    + ';' + data.charging.status.battery.currentSOC_pct
+    + ';' + data.charging.status.charging.chargeType
+    + ';' + data.charging.status.charging.chargePower_kW.toFixed(1).replace('.', ',')
+    + ';' + data.charging.status.plug.plugConnectionState
+    + ';' + data.charging.status.plug.plugLockState
+    + ';' + data.charging.status.plug.externalPower
+    + ';' + (activeCommands['charging'] ? activeCommands['charging'].state : '')
+    + ';' + data.charging_settings.settings.maxChargeCurrentAC
+    + ';' + data.charging_settings.settings.targetSoc_pct
+    + ';' + data.climatisation.data.climatisationStatus.climatisationState
+    + ';' + data.climatisation.data.climatisationStatus.remainingClimatisationTime_min
+    + ';' + (data.climatisation_settings.settings.targetTemperature_K - 273.15).toFixed(1).replace('.', ',')
+    + ';' + (activeCommands['climatisation'] ? activeCommands['climatisation'].state : '')
+    + ';' + data.climatisation.data.windowHeatingStatus.windowHeatingStatus[0].windowHeatingState
+    + ';' + data.climatisation.data.windowHeatingStatus.windowHeatingStatus[1].windowHeatingState
+    + '\n';
+  
+  if (!fs.existsSync('data')) {
+    fs.mkdirSync('data')
+  }
+
+  let filename = 'data/' + now.format('YYYY-MM') + '.csv';
+
+  if(!fs.existsSync(filename)) {
+    logData = 'stamp;stamp car;soc;charging;kW;connected;plug locked;external power;charging cmd;AC current;target soc;climatisation;remaining mins;temp;climatisation cmd;window heating front;window heating back\n' + logData;
+  }
+
+  fs.appendFile(filename, logData, err => {
+    if (err) {
+      console.log('Cant write data!', err);
+    }
+  });
+
+}
+
+//-------------------------------------------------------------------------------------------
 async function onNewData() {
+
+  console.log('onNewData...');
 
   if(!server) {
     startServer();
@@ -262,31 +346,32 @@ async function onNewData() {
   }
 
   // check charge limit
-  if(ChargeLimit < 100 && 
-     vwConn.vehicles[0].charging.status.battery.currentSOC_pct >= ChargeLimit && 
+  if(ClientConfig.chargeLimit < 100 && 
+     vwConn.vehicles[0].charging.status.battery.currentSOC_pct >= ClientConfig.chargeLimit && 
      vwConn.vehicles[0].charging.status.charging.chargePower_kW > 0) {
 
     if(!activeCommands['charging'] || activeCommands['charging'].state != 'stop') {
-      console.log('charging limit reached, stopping charging ' + vwConn.vehicles[0].charging.status.battery.currentSOC_pct + '>=' + ChargeLimit);
+      console.log('charging limit reached, stopping charging ' + vwConn.vehicles[0].charging.status.battery.currentSOC_pct + '>=' + ClientConfig.chargeLimit);
       await doCommand({action: 'charging', state: 'stop'});
-      requestUpdate();
     }
 
-    ChargeLimit = 100;
+    ClientConfig.chargeLimit = 100;
     onNewData();
     return;
   }
 
   sendData2abrp();
+  storeData();
 
   if(updateTimeout) {
+    // console.log('onNewData...updateTimeout');
     return;
   }
 
   let secs = Config.refresh_secs;
 
   // slow polling when not needed
-  if(!Object.keys(clients).length && !Object.keys(activeCommands).length && (ChargeLimit == 100 || vwConn.vehicles[0].charging.status.charging.chargePower_kW == 0) ) {
+  if(!Object.keys(clients).length && !Object.keys(activeCommands).length && (ClientConfig.chargeLimit == 100 || vwConn.vehicles[0].charging.status.charging.chargePower_kW == 0) ) {
 
     let data = vwConn.vehicles[0];
     let stamp = moment.utc(data.charging.status.battery.carCapturedTimestamp);
@@ -298,7 +383,7 @@ async function onNewData() {
       secs = Config.drive_refresh_secs;
     }
 
-    console.log(`data age is ${age} secs`);
+    //console.log(`data age is ${age} secs`);
   }
 
   if(secs != lastPollingInterval) {
@@ -311,22 +396,42 @@ async function onNewData() {
     console.log(`now polling in ${secs} secs`);
   }
 
+  // console.log('onNewData...startNextUpdate');
+
   startNextUpdate(secs);
 }
 
 //-------------------------------------------------------------------------------------------
+async function doUpdate() {
+
+  // console.log('doUpdate...');  
+
+  updateTimeout = null;
+
+  if(await vwConn.update()) {
+    // console.log('doUpdate...ok');  
+    retrySecs = 10;
+    return;
+  }
+
+  console.log(`retry in ${retrySecs} secs...`);
+  
+  sendProblem2clients('Server Offline!');
+
+  startNextUpdate(retrySecs);
+
+  if(retrySecs < 320) {
+    retrySecs *= 2;
+  } else {
+    if(Config.telegram_on_offline)
+      sendTelegram('car offline!');
+  }
+
+}
+
+//-------------------------------------------------------------------------------------------
 function startNextUpdate(secs) {
-
-  updateTimeout = setTimeout(async function() {
-
-    updateTimeout = null;
-
-    if(!await vwConn.update()) {
-      console.log(`retry in 10 secs...`);
-      startNextUpdate(10);
-    }
-
-  }, secs * 1000);
+  updateTimeout = setTimeout(doUpdate, secs * 1000);
 }
 
 //-------------------------------------------------------------------------------------------
@@ -336,12 +441,58 @@ function loadConfig() {
 }
 
 //-------------------------------------------------------------------------------------------
+function loadClientConfig() {
+  try {
+    const data = fs.readFileSync('./client_config.json', 'utf8');
+    ClientConfig = JSON.parse(data);  
+  } catch(e) {
+    console.log(`Error loading client config ${e.message}`);
+  }
+}
+
+//-------------------------------------------------------------------------------------------
+function saveClientConfig() {
+  fs.writeFileSync('./client_config.json', JSON.stringify(ClientConfig, null, 2), 'utf8');
+}
+
+//-------------------------------------------------------------------------------------------
+async function onTimer() {
+
+  if(!ClientConfig.climatisationAt) {
+    return;
+  }
+
+  let now = moment();
+
+  if(now.hours()   != ClientConfig.climatisationAtH ||
+     now.minutes() != ClientConfig.climatisationAtM    ) {
+
+    return;
+  }
+
+  if(activeCommands['climatisation'] == 'start') {
+    return;
+  }
+
+  let state = vwConn.vehicles[0].climatisation.data.climatisationStatus.climatisationState;
+
+  if(state != 'off' && state != 'invalid') {
+    return;
+  }
+
+  console.log('Starting scheduled climatisation');
+
+  await doCommand({action: 'climatisation', state: 'start'});
+}
+
+//-------------------------------------------------------------------------------------------
 async function main() {
 
   try {
     console.log('loadConfig');
 
     loadConfig();
+    loadClientConfig();
 
     console.log('VwWeConnect');
 
@@ -361,12 +512,19 @@ async function main() {
 
     await vwConn.getData();
 
+    setInterval(onTimer, 1000);
+
+    retrySecs = 10;
     console.log('ready');
 
   } catch(e) {
-    console.error('ERROR ' + e);
-    console.log(`retry in 30 secs...`);
-    setTimeout(main, 30000);
+    console.error('startup failed!');
+
+    console.log(`retry in ${retrySecs} secs...`);
+    setTimeout(main, retrySecs * 1000);
+
+    if(retrySecs < 320)
+      retrySecs *= 2;
   }
 
 }

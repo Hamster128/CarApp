@@ -13,16 +13,27 @@
           .button {
             font-size: 60px;
           }
+
           .symbol {
             font-size: 220px;
-            border: 10px solid #000;
+            border: 10px solid transparent;
             border-radius: 25px;
             padding: 20px;
           }
+
+          .select {
+            font-size: 50px;
+          }
+
+          .clicked {
+            border: 10px solid #0A0;
+          }
+
           .symbol_td {
             text-align:center;
             cursor:pointer;
           }
+
           .green {
             color: #0A0;
           }
@@ -38,22 +49,23 @@
           .blue {
             color: #68F;
           }
-          .clicked {
-            border: 10px solid #0A0;
-          }
+
           .kw {
             font-size: 70px;
           }
+
           .td_limit_marker {
             text-align: right;
             font-size: 100px;
             cursor:pointer;
           }
+
           .slider {
             -webkit-appearance: none;
-            background: #000;
+            background: transparent;
             height:40px;
           }
+
           .slider::-webkit-slider-thumb {
             -webkit-appearance: none; /* Override default look */
             appearance: none;
@@ -61,6 +73,7 @@
             height: 76px; /* Slider handle height */
             cursor: pointer; /* Cursor on hover */
             background-image: url('/static/slider.png');
+            background-color: transparent;
           }
 
           .setslider {
@@ -70,6 +83,7 @@
             width: 100%;
             background: #000;
           }
+          
           .setslider::-webkit-slider-runnable-track {
             width: 100%;
             height: 25px;
@@ -80,6 +94,7 @@
             border-radius: 12px;
             border: 1px solid #000000;
           }
+
           .setslider::-webkit-slider-thumb {
             box-shadow: 1px 1px 1px #000000;
             border: 1px solid #000000;
@@ -111,6 +126,8 @@
             position: fixed;
             overflow: hidden;
             background: #000;
+            background-image: url(static/back.jpg);
+            background-size: 100%;
             margin:0px;
             font-family: Arial, Helvetica, sans-serif; 
             color:#AAA; 
@@ -146,12 +163,13 @@
             </tr>
             <tr>
               <td colspan=2>
-                <h1 id="title" style="text-align: center;" onClick="update();">updateing...</h1>
+                <h1 id="title" style="text-align: center;" onClick="update();">&nbsp;</h1>
+                <h2 id="problem" style="text-align: center;" onClick="update();">updateing...</h2>
                 <br>
               </td>
             </tr>
             <tr>
-              <td><span id="soc_limit"></span>%&nbsp;</td>
+              <td id="soc_limit_clr"><span id="soc_limit"></span>%&nbsp;</td>
               <td>
                 <input type="range" min="0" max="100" step="10" value="50" class="slider" id="limit_slider" style="width:100%;" onInput="changingChargeLimit(this.value);" onChange="setChargeLimit(this.value);">
               </td>
@@ -174,7 +192,7 @@
             </tr>
             <tr style="height:100px">
               <td id="txtCharging" class="symbol_td"></td>
-              <td id="txtClimate" class="symbol_td"></td>
+              <td class="symbol_td"><span id="txtClimate"></span><span id="txtClimateAt"></span></td>
             </tr>
             <tr><td style="height: 200px;"></td></tr>
           </table>
@@ -183,7 +201,7 @@
         <!-------------------------------------------------------------------------------------------------
         -- settings page
         --------------------------------------------------------------------------------------------------->
-        <div id="divSettings" style="visibility:hidden; position:absolute; z-index:20; top:0px; width:100vw; height:90vh; background-color: #000;">
+        <div id="divSettings" style="visibility:hidden; position:absolute; z-index:20; top:0px; width:100vw; height:100vh; background-color: #000;">
           <table style="width:100%; padding:50px;">
             <tr>
               <td style="text-align:right; font-size:100px;" onClick="closeSettings();"><i class="fa-regular fa-circle-xmark"></i></td>
@@ -204,10 +222,63 @@
             </tr>
             <tr><td style="height: 50px;"></td></tr>
             <tr>
-              <td class="switch_td"><label id="limit_ac_label" class="switch_label"><input type="checkbox" class="switch" id="limit_ac" onChange="changedLimitAC(this.checked);">Limit AC</label></td>
+              <td class="switch_td"><label id="limit_ac_label" class="switch_label">
+                <input type="checkbox" class="switch" id="limit_ac" onChange="changedLimitAC(this.checked);">Limit AC</input>
+              </label></td>
             </tr>
             <tr>
-              <td class="switch_td"><label id="auto_unlock_label" class="switch_label"><input type="checkbox" class="switch" id="auto_unlock" onChange="changedAutoUnlock(this.checked);">Auto Unlock</label></td>
+              <td class="switch_td">
+                <label id="auto_unlock_label" class="switch_label">
+                    <input type="checkbox" class="switch" id="auto_unlock" onChange="changedAutoUnlock(this.checked);">Auto Unlock</input>
+              </label></td>
+            </tr>
+            <tr>
+              <td class="switch_td">
+                <label id="schedule_climate_label" class="switch_label">
+                  <input type="checkbox" class="switch" id="climatisation_at" onChange="changedClimatisationAt(this.checked);">Climatisation:&nbsp;
+                </label>
+                <select class="select" id="climatisation_at_h" onChange="changedClimatisationAtTime();">
+                  <option value="0">00</option>
+                  <option value="1">01</option>
+                  <option value="2">02</option>
+                  <option value="3">03</option>
+                  <option value="4">04</option>
+                  <option value="5">05</option>
+                  <option value="6">06</option>
+                  <option value="7">07</option>
+                  <option value="8">08</option>
+                  <option value="9">09</option>
+                  <option value="10">10</option>
+                  <option value="11">11</option>
+                  <option value="12">12</option>
+                  <option value="13">13</option>
+                  <option value="14">14</option>
+                  <option value="15">15</option>
+                  <option value="16">16</option>
+                  <option value="17">17</option>
+                  <option value="18">18</option>
+                  <option value="19">19</option>
+                  <option value="20">20</option>
+                  <option value="21">21</option>
+                  <option value="22">22</option>
+                  <option value="23">23</option>
+                </select>
+                :
+                <select class="select" id="climatisation_at_m" onChange="changedClimatisationAtTime();">
+                  <option value="0">00</option>
+                  <option value="5">05</option>
+                  <option value="10">10</option>
+                  <option value="15">15</option>
+                  <option value="20">20</option>
+                  <option value="25">25</option>
+                  <option value="30">30</option>
+                  <option value="35">35</option>
+                  <option value="40">40</option>
+                  <option value="45">45</option>
+                  <option value="50">50</option>
+                  <option value="55">55</option>
+                </select>
+              </td>
             </tr>
           </table>
         </div>
@@ -217,9 +288,28 @@
           var socket = io('http://'+location.host);
           var socTime;
 
+          let Config = {
+            chargeLimit: 100
+          };
+
+          // -----------------------------------------------------------------------------------------------
+          window.addEventListener("error", function (e) {
+            log(e.error.message);
+            log(e.error.stack);
+            return false;
+          });
+                    
+          // -----------------------------------------------------------------------------------------------
+          window.addEventListener('unhandledrejection', function (e) {
+            log(e.reason.message);
+            log(e.reason.stack);
+          });
+
+          // -----------------------------------------------------------------------------------------------
           function log(txt) {
             console.log(txt);
             $('#divDebug').append('<p>' + txt +'</p>');
+            socket.emit('log', txt);
           }
 
           // -----------------------------------------------------------------------------------------------
@@ -235,6 +325,7 @@
 
           // -----------------------------------------------------------------------------------------------
           function clickCharging() {
+            socket.emit('log', 'clickCharging');
 
             if($('#symCharging').hasClass('white')) {
 
@@ -250,6 +341,7 @@
 
           // -----------------------------------------------------------------------------------------------
           function clickClimate() {
+            socket.emit('log', 'clickClimate');
 
             if($('#symClimate').hasClass('grey')) {
 
@@ -276,7 +368,7 @@
 
           // -----------------------------------------------------------------------------------------------
           function update() {
-            $('#title').html('updateing...');
+            $('#problem').html('updateing...');
             socket.emit('update');
           }
 
@@ -306,12 +398,14 @@
               $('#limit_slider').prop('value', charge_limit);
             }
 
+            $('#soc_limit').html(charge_limit);
+
             let app_limit = parseInt($('#applimit_slider').prop('value'));
 
             if(app_limit < charge_limit) {
-              $('#soc_limit').html(app_limit);
+              $('#soc_limit_clr').addClass('red');
             } else {
-              $('#soc_limit').html(charge_limit);
+              $('#soc_limit_clr').removeClass('red');
             }
           }
 
@@ -327,7 +421,21 @@
 
           // -----------------------------------------------------------------------------------------------
           function setAppChargeLimit(charge_imit) {
-            socket.emit('set_charge_limit', charge_imit);
+            Config.chargeLimit = charge_imit;
+            socket.emit('set_config', Config);
+          }
+
+          // -----------------------------------------------------------------------------------------------
+          function changedClimatisationAt(checked) {
+            Config.climatisationAt = checked;
+            socket.emit('set_config', Config);
+          }
+
+          // -----------------------------------------------------------------------------------------------
+          function changedClimatisationAtTime() {
+            Config.climatisationAtH = parseInt($('#climatisation_at_h').val());
+            Config.climatisationAtM = parseInt($('#climatisation_at_m').val());
+            socket.emit('set_config', Config);
           }
 
           // -----------------------------------------------------------------------------------------------
@@ -359,19 +467,26 @@
 
           // -----------------------------------------------------------------------------------------------
           socket.io.on('close', function() {
-            $('#title').html('offline');
+            $('#problem').html('disconnected');
           });
 
           // -----------------------------------------------------------------------------------------------
           socket.io.on('reconnect', function() {
-            $('#title').html('updateing...');
+            $('#problem').html('updateing...');
           });
+
+          // -----------------------------------------------------------------------------------------------
+          socket.on('problem', function (problem) {
+            $('#problem').html(`<span style="color:#F00;">${problem}</span>`);
+          }); 
 
           // -----------------------------------------------------------------------------------------------
           socket.on('data', function (data) {
 
+            $('#title').html(data.vehicleNickname);
+            
             if(data.newData) {
-              $('#title').html(data.vehicleNickname);
+              $('#problem').html('&nbsp;');
             }
 
             $('#soc').html(data.charging.status.battery.currentSOC_pct);
@@ -380,18 +495,20 @@
             socTime = moment(data.charging.status.battery.carCapturedTimestamp);
             updateSOCtime();
 
-            // ---------------------------------------- CHARGING LIMIT ----------------------------------------
-            $('#soc_applimit').html(data.charge_limit+"%");
-            $('#applimit_slider').prop('value', data.charge_limit);
+            Config = data.Config;
 
-            $('#soc_limit').removeClass('green');
+            // ---------------------------------------- CHARGING LIMIT ----------------------------------------
+            $('#soc_applimit').html(data.Config.chargeLimit+"%");
+            $('#applimit_slider').val(data.Config.chargeLimit);
+
+            $('#soc_limit_clr').removeClass('green');
             $('#limit_ac_label').removeClass('green');
             $('#auto_unlock_label').removeClass('green');
 
             if(data.activeCommands['charging_settings']) {
 
               if(data.activeCommands['charging_settings'].body.targetSoc_pct != data.status.services.charging.targetPct) {
-                $('#soc_limit').addClass('green');
+                $('#soc_limit_clr').addClass('green');
               }
 
               displayChargeLimit(data.activeCommands['charging_settings'].body.targetSoc_pct, true);
@@ -515,6 +632,16 @@
 
             $('#climatemp').html(temp+"°C");
             $('#climatemp_slider').prop('value', temp);
+
+            $('#climatisation_at').prop('checked', data.Config.climatisationAt);
+            $('#climatisation_at_h').val(data.Config.climatisationAtH);
+            $('#climatisation_at_m').val(data.Config.climatisationAtM);
+
+            if(data.Config.climatisationAt) {
+              $('#txtClimateAt').html('&nbsp;&nbsp;<i class="fa-regular fa-clock"></i>');
+            } else {
+              $('#txtClimateAt').html('');
+            }
 
             // ---------------------------------------- CLIMATISATION TEXT ----------------------------------------
             if(data.status.services.climatisation.active) {
