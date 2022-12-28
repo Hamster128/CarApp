@@ -480,6 +480,17 @@ async function onTimer() {
     return;
   }
 
+  if(!ClientConfig.climatisationOnce) {
+    if(now.day() == 0 && !ClientConfig.climatisationSu) return;
+    if(now.day() == 1 && !ClientConfig.climatisationMo) return;
+    if(now.day() == 2 && !ClientConfig.climatisationTu) return;
+    if(now.day() == 3 && !ClientConfig.climatisationWe) return;
+    if(now.day() == 4 && !ClientConfig.climatisationTh) return;
+    if(now.day() == 5 && !ClientConfig.climatisationFr) return;
+    if(now.day() == 6 && !ClientConfig.climatisationSa) return;
+  }
+
+
   if(activeCommands['climatisation'] && activeCommands['climatisation'].state  == 'start') {
     return;
   }
@@ -493,6 +504,11 @@ async function onTimer() {
   console.log('Starting scheduled climatisation');
 
   await doCommand({action: 'climatisation', state: 'start'});
+
+  if(ClientConfig.climatisationOnce) {
+    ClientConfig.climatisationAt = false;    
+  }
+
 }
 
 //-------------------------------------------------------------------------------------------

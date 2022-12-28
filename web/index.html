@@ -223,19 +223,19 @@
             <tr><td style="height: 50px;"></td></tr>
             <tr>
               <td class="switch_td"><label id="limit_ac_label" class="switch_label">
-                <input type="checkbox" class="switch" id="limit_ac" onChange="changedLimitAC(this.checked);">Limit AC</input>
+                <input type="checkbox" class="switch" id="limit_ac" onChange="changedLimitAC(this.checked);">Limit AC charging</input>
               </label></td>
             </tr>
             <tr>
               <td class="switch_td">
                 <label id="auto_unlock_label" class="switch_label">
-                    <input type="checkbox" class="switch" id="auto_unlock" onChange="changedAutoUnlock(this.checked);">Auto Unlock</input>
+                    <input type="checkbox" class="switch" id="auto_unlock" onChange="changedAutoUnlock(this.checked);">Auto unlock</input>
               </label></td>
             </tr>
             <tr>
               <td class="switch_td">
                 <label id="schedule_climate_label" class="switch_label">
-                  <input type="checkbox" class="switch" id="climatisation_at" onChange="changedClimatisationAt(this.checked);">Climatisation:&nbsp;
+                  <input type="checkbox" class="switch" id="climatisation_at" onChange="changedClimatisationAt(this.checked);">A/C:&nbsp;
                 </label>
                 <select class="select" id="climatisation_at_h" onChange="changedClimatisationAtTime();">
                   <option value="0">00</option>
@@ -278,6 +278,23 @@
                   <option value="50">50</option>
                   <option value="55">55</option>
                 </select>
+                &nbsp;&nbsp;&nbsp;
+                <input type="checkbox" class="switch" id="climatisation_once" onChange="changedClimatisationDay();"/>1x
+                <br>
+                  <table class="climatisation_weekday" style="width:100%; margin-top:20px;">
+                    <tr>
+                      <td>Mo</td><td>Tu</td><td>We</td><td>Th</td><td>Fr</td><td>Sa</td><td>Su</td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox" class="switch" id="climatisation_mo" onChange="changedClimatisationDay();"/></td>
+                      <td><input type="checkbox" class="switch" id="climatisation_tu" onChange="changedClimatisationDay();"/></td>
+                      <td><input type="checkbox" class="switch" id="climatisation_we" onChange="changedClimatisationDay();"/></td>
+                      <td><input type="checkbox" class="switch" id="climatisation_th" onChange="changedClimatisationDay();"/></td>
+                      <td><input type="checkbox" class="switch" id="climatisation_fr" onChange="changedClimatisationDay();"/></td>
+                      <td><input type="checkbox" class="switch" id="climatisation_sa" onChange="changedClimatisationDay();"/></td>
+                      <td><input type="checkbox" class="switch" id="climatisation_su" onChange="changedClimatisationDay();"/></td>
+                    </tr>
+                  </table>
               </td>
             </tr>
           </table>
@@ -436,6 +453,32 @@
             Config.climatisationAtH = parseInt($('#climatisation_at_h').val());
             Config.climatisationAtM = parseInt($('#climatisation_at_m').val());
             socket.emit('set_config', Config);
+          }
+
+          // -----------------------------------------------------------------------------------------------
+          function changedClimatisationDay() {
+            Config.climatisationOnce = $('#climatisation_once').prop('checked');
+            Config.climatisationtMo  = $('#climatisation_mo').prop('checked');
+            Config.climatisationtTu  = $('#climatisation_tu').prop('checked');
+            Config.climatisationtWe  = $('#climatisation_we').prop('checked');
+            Config.climatisationtTh  = $('#climatisation_th').prop('checked');
+            Config.climatisationtFr  = $('#climatisation_fr').prop('checked');
+            Config.climatisationtSa  = $('#climatisation_sa').prop('checked');
+            Config.climatisationtSu  = $('#climatisation_su').prop('checked');
+            setClimatisationDayVisibillity();
+            socket.emit('set_config', Config);
+          }
+
+          // -----------------------------------------------------------------------------------------------
+          function setClimatisationDayVisibillity() {
+
+            let val = '';
+
+            if(Config.climatisationOnce) {
+              val = 'none';
+            }
+
+            $('.climatisation_weekday').css('display', val);
           }
 
           // -----------------------------------------------------------------------------------------------
@@ -636,6 +679,16 @@
             $('#climatisation_at').prop('checked', data.Config.climatisationAt);
             $('#climatisation_at_h').val(data.Config.climatisationAtH);
             $('#climatisation_at_m').val(data.Config.climatisationAtM);
+
+            $('#climatisation_once').prop('checked', data.Config.climatisationOnce);
+            $('#climatisation_mo'  ).prop('checked', data.Config.climatisationtMo);
+            $('#climatisation_tu'  ).prop('checked', data.Config.climatisationtTu);
+            $('#climatisation_we'  ).prop('checked', data.Config.climatisationtWe);
+            $('#climatisation_th'  ).prop('checked', data.Config.climatisationtTh);
+            $('#climatisation_fr'  ).prop('checked', data.Config.climatisationtFr);
+            $('#climatisation_sa'  ).prop('checked', data.Config.climatisationtSa);
+            $('#climatisation_su'  ).prop('checked', data.Config.climatisationtSu);
+            setClimatisationDayVisibillity();
 
             if(data.Config.climatisationAt) {
               $('#txtClimateAt').html('&nbsp;&nbsp;<i class="fa-regular fa-clock"></i>');
