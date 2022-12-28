@@ -15,7 +15,8 @@ let Config;
 let vwConn;
 let clients = {};
 let server;
-let activeCommands = {}; 
+let activeCommands = {};
+
 let updateTimeout;
 let lastStamp, lastStampStored, prevStamp, lastPollingInterval;
 let lastTargetTemp_K = 22.0 + 273.15; // C -> K
@@ -31,8 +32,20 @@ let ClientConfig = {
 //-------------------------------------------------------------------------------------------
 function sendCurrentData(socket, newData) {
 
+  vwConn.vehicles[0].activeCommands = activeCommands
+  ;
+  vwConn.vehicles[0].Config = ClientConfig;
+  vwConn.vehicles[0].newData = newData;
+  
+  socket.emit('data', vwConn.vehicles[0]);
+}
+
+//-------------------------------------------------------------------------------------------
+function cleanActiveCommands() {
+
   // check if active command timed out
   for(let key in activeCommands) {
+    
     let command = activeCommands[key];
     let seconds = moment.utc().diff(command.stamp, 'seconds');
 
@@ -41,11 +54,6 @@ function sendCurrentData(socket, newData) {
     }
   }
 
-  vwConn.vehicles[0].activeCommands = activeCommands;
-  vwConn.vehicles[0].Config = ClientConfig;
-  vwConn.vehicles[0].newData = newData;
-  
-  socket.emit('data', vwConn.vehicles[0]);
 }
 
 //-------------------------------------------------------------------------------------------
@@ -126,7 +134,7 @@ async function requestUpdate() {
     return;
   }
 
-  // console.log('requestUpdate...');
+  console.log('requestUpdate...');
 
   clearTimeout(updateTimeout);
   updateTimeout = null;
@@ -364,7 +372,7 @@ async function onNewData() {
   storeData();
 
   if(updateTimeout) {
-    // console.log('onNewData...updateTimeout');
+    console.log('onNewData...updateTimeout');
     return;
   }
 
@@ -383,7 +391,7 @@ async function onNewData() {
       secs = Config.drive_refresh_secs;
     }
 
-    //console.log(`data age is ${age} secs`);
+    console.log(`data age is ${age} secs`);
   }
 
   if(secs != lastPollingInterval) {
@@ -396,7 +404,7 @@ async function onNewData() {
     console.log(`now polling in ${secs} secs`);
   }
 
-  // console.log('onNewData...startNextUpdate');
+  console.log('onNewData...startNextUpdate');
 
   startNextUpdate(secs);
 }
@@ -404,12 +412,12 @@ async function onNewData() {
 //-------------------------------------------------------------------------------------------
 async function doUpdate() {
 
-  // console.log('doUpdate...');  
+  console.log('doUpdate...');  
 
   updateTimeout = null;
 
   if(await vwConn.update()) {
-    // console.log('doUpdate...ok');  
+    console.log('doUpdate...ok');  
     retrySecs = 10;
     return;
   }
@@ -458,6 +466,8 @@ function saveClientConfig() {
 //-------------------------------------------------------------------------------------------
 async function onTimer() {
 
+  cleanActiveCommands();
+
   if(!ClientConfig.climatisationAt) {
     return;
   }
@@ -470,7 +480,7 @@ async function onTimer() {
     return;
   }
 
-  if(activeCommands['climatisation'] == 'start') {
+  if(activeCommands['climatisation'] && activeCommands['climatisation'].state  == 'start') {
     return;
   }
 
