@@ -436,12 +436,12 @@ async function doUpdate() {
   startNextUpdate(retrySecs);
 
   if(retrySecs < 320) {
-    retrySecs *= 2;
-  } else {
-    if(Config.telegram_on_offline)
-      sendTelegram('car offline!');
-  }
 
+    if(retrySecs == 160 && Config.telegram_on_offline)
+      sendTelegram('car offline!');
+
+    retrySecs *= 2;
+  }
 }
 
 //-------------------------------------------------------------------------------------------
