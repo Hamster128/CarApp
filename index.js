@@ -17,7 +17,7 @@ let clients = {};
 let server;
 let activeCommands = {};
 
-let updateTimeout;
+let updateTimeout, updateWatchdog;
 let lastStamp, lastStampStored, prevStamp, lastPollingInterval;
 let retrySecs = 10;
 
@@ -423,11 +423,24 @@ async function doUpdate() {
 
   updateTimeout = null;
 
-  if(await vwConn.update()) {
+  updateWatchdog = setTimeout(updateTimedOut, 180 * 1000);
+
+  let ok = await vwConn.update();
+
+  clearTimeout(updateWatchdog);
+  updateWatchdog = null;
+
+  if(ok) {
     console.log('doUpdate...ok');  
     retrySecs = 10;
     return;
   }
+
+  retryUpdate();
+}
+
+//-------------------------------------------------------------------------------------------
+function retryUpdate() {
 
   console.log(`retry in ${retrySecs} secs...`);
   
@@ -442,6 +455,15 @@ async function doUpdate() {
 
     retrySecs *= 2;
   }
+}
+
+//-------------------------------------------------------------------------------------------
+function updateTimedOut() {
+
+  console.log('update() timed out!');
+  updateWatchdog = null;
+
+  retryUpdate();
 }
 
 //-------------------------------------------------------------------------------------------
