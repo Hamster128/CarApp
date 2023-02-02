@@ -2,11 +2,13 @@
 
 // latest checked version of ioBroker.vw-connect: latest // https://github.com/TA2k/ioBroker.vw-connect/commit/560288cfbd77e7d9b8363991f7a2217cb039ea85
 
-const request = require("request");
+const Request = require("request");
 const crypto = require("crypto");
 const { Crypto } = require("@peculiar/webcrypto");
 const { v4: uuidv4 } = require("uuid");
 const traverse = require("traverse");
+
+const request = Request.defaults({timeout: 30000});
 
 class Log {
   constructor(logLevel) {
@@ -518,6 +520,7 @@ class VwWeConnect {
 
         this.update = async function() {
             if(!this.vinArray) {
+                this.log.error('update ignored, no vinArray');
                 return true;
             }
             
@@ -526,7 +529,7 @@ class VwWeConnect {
                 try {
                     await this.getSeatCupraStatus(vin);
                 } catch(e) {
-                    this.log.error("get seat status Failed ", e);
+                    this.log.error("get seat status Failed " + e);
                     this.refreshSeatCupraToken().catch(() => {});
                     return false;
                 }
@@ -2027,12 +2030,12 @@ class VwWeConnect {
             },
             (err, resp, body) => {
                 if (err || (resp && resp.statusCode >= 400)) {
-                    this.log.error('get car failed!')
+                    this.log.error('get car failed!');
                     err && this.log.error(err);
-                    resp && this.log.error(resp.statusCode);                    
-                    return reject();;
+                    resp && this.log.error(resp.statusCode);
+                    return reject();
                 }
-                // this.log.info("get car: " + JSON.stringify(body));
+                this.log.info("get car: " /*+ JSON.stringify(body)*/);
                 this.idData = body;
                 this.boolFinishIdData = true;
 
@@ -2058,13 +2061,13 @@ class VwWeConnect {
                 },
                 (err, resp, body) => {
                     if (err || (resp && resp.statusCode >= 400)) {
-                        this.log.error('get charging status failed!')
+                        this.log.error('get charging status failed!');
                         err && this.log.error(err);
                         resp && this.log.error(resp.statusCode.toString());
                         body && this.log.error(JSON.stringify(body));
                         return reject();;
                     }
-                    // this.log.info('get charging status: ' + JSON.stringify(body));
+                    this.log.info('get charging status: '/* + JSON.stringify(body)*/);
 
                     vehicle.charging = body;
                     resolve();
@@ -2089,13 +2092,13 @@ class VwWeConnect {
                 },
                 (err, resp, body) => {
                     if (err || (resp && resp.statusCode >= 400)) {
-                        this.log.error('get charging settings failed!')
+                        this.log.error('get charging settings failed!');
                         err && this.log.error(err);
                         resp && this.log.error(resp.statusCode.toString());
                         body && this.log.error(JSON.stringify(body));
                         return reject();
                     }
-                    // this.log.info('get charging settings: ' + JSON.stringify(body));
+                    this.log.info('get charging settings: '/* + JSON.stringify(body)*/);
 
                     vehicle.charging_settings = body;
                     resolve();
@@ -2126,7 +2129,7 @@ class VwWeConnect {
                         body && this.log.error(JSON.stringify(body));
                         return reject();
                     }
-                    // this.log.info('get climatisation settings: ' + JSON.stringify(body));
+                    this.log.info('get climatisation settings: '/* + JSON.stringify(body)*/);
 
                     vehicle.climatisation_settings = body;
                     resolve();
@@ -2157,7 +2160,7 @@ class VwWeConnect {
                         body && this.log.error(JSON.stringify(body));
                         return reject();
                     }
-                    // this.log.info('get climatisation status: ' + JSON.stringify(body));
+                    this.log.info('get climatisation status: ' /*+ JSON.stringify(body)*/);
 
                     vehicle.climatisation = body;
                     resolve();
@@ -2289,10 +2292,10 @@ class VwWeConnect {
                 },
                 (err, resp, body) => {
                     if (err || (resp && resp.statusCode >= 400)) {
+                        this.log.error("Failed refresh token.");
                         err && this.log.error(err);
                         resp && this.log.error(resp.statusCode.toString());
                         body && this.log.error(JSON.stringify(body));
-                        this.log.error("Failed refresh token.");
                         reject();
                         return;
                     }
