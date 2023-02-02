@@ -8,7 +8,7 @@ const { Crypto } = require("@peculiar/webcrypto");
 const { v4: uuidv4 } = require("uuid");
 const traverse = require("traverse");
 
-const request = Request.defaults({timeout: 30000});
+const request = Request.defaults({timeout: 60000});
 
 class Log {
   constructor(logLevel) {
