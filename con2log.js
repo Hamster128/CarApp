@@ -9,6 +9,11 @@ let logStream, logDate;
 exports.keepFilesDays = 40;
 
 //--------------------------------------------------------------------------------------
+process.on('uncaughtException', function(err) {
+  console.log('UNHANDLED EXCEPTION:', err);
+})
+
+//--------------------------------------------------------------------------------------
 console.log = function() {
 
   let today = moment().format('YYYY-MM-DD');

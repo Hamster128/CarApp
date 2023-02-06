@@ -20,6 +20,8 @@ let activeCommands = {};
 let updateTimeout;
 let lastStamp, lastStampStored, prevStamp, lastPollingInterval;
 let retrySecs = 10;
+let CarOfflineMsgSent = true;
+let timedClimatisationRetry = 0;
 
 let ClientConfig = {
   chargeLimit: 100,
@@ -379,7 +381,6 @@ async function onNewData() {
   storeData();
 
   if(updateTimeout) {
-    console.log('onNewData...updateTimeout');
     return;
   }
 
@@ -425,6 +426,13 @@ async function doUpdate() {
 
   if(await vwConn.update()) {
     console.log('doUpdate...ok');  
+
+    if(CarOfflineMsgSent && Config.telegram_on_online) {
+      sendTelegram('car online.');
+    }
+    
+    CarOfflineMsgSent = false;
+
     retrySecs = 10;
     return;
   }
@@ -437,8 +445,10 @@ async function doUpdate() {
 
   if(retrySecs < 320) {
 
-    if(retrySecs == 160 && Config.telegram_on_offline)
+    if(retrySecs == 160 && Config.telegram_on_offline) {
+      CarOfflineMsgSent = true;
       sendTelegram('car offline!');
+    }
 
     retrySecs *= 2;
   }
@@ -471,30 +481,39 @@ function saveClientConfig() {
 }
 
 //-------------------------------------------------------------------------------------------
+// 1 sec
 async function onTimer() {
 
   cleanActiveCommands();
 
-  if(!ClientConfig.climatisationAt) {
-    return;
-  }
+  if(!timedClimatisationRetry) {
+    
+    if(!ClientConfig.climatisationAt) {
+      return;
+    }
+  
+    let now = moment();
+  
+    if(now.hours()   != ClientConfig.climatisationAtH ||
+       now.minutes() != ClientConfig.climatisationAtM    ) {
+  
+      return;
+    }
+  
+    if(!ClientConfig.climatisationOnce) {
+      if(now.day() == 0 && !ClientConfig.climatisationSu) return;
+      if(now.day() == 1 && !ClientConfig.climatisationMo) return;
+      if(now.day() == 2 && !ClientConfig.climatisationTu) return;
+      if(now.day() == 3 && !ClientConfig.climatisationWe) return;
+      if(now.day() == 4 && !ClientConfig.climatisationTh) return;
+      if(now.day() == 5 && !ClientConfig.climatisationFr) return;
+      if(now.day() == 6 && !ClientConfig.climatisationSa) return;
+    }
 
-  let now = moment();
+    timedClimatisationRetry = 300;  // try it 5 min
 
-  if(now.hours()   != ClientConfig.climatisationAtH ||
-     now.minutes() != ClientConfig.climatisationAtM    ) {
-
-    return;
-  }
-
-  if(!ClientConfig.climatisationOnce) {
-    if(now.day() == 0 && !ClientConfig.climatisationSu) return;
-    if(now.day() == 1 && !ClientConfig.climatisationMo) return;
-    if(now.day() == 2 && !ClientConfig.climatisationTu) return;
-    if(now.day() == 3 && !ClientConfig.climatisationWe) return;
-    if(now.day() == 4 && !ClientConfig.climatisationTh) return;
-    if(now.day() == 5 && !ClientConfig.climatisationFr) return;
-    if(now.day() == 6 && !ClientConfig.climatisationSa) return;
+  } else {
+    timedClimatisationRetry --;
   }
 
 
@@ -508,14 +527,13 @@ async function onTimer() {
     return;
   }
 
-  console.log('Starting scheduled climatisation');
+  console.log('Starting scheduled climatisation '+timedClimatisationRetry);
 
   await doCommand({action: 'climatisation', state: 'start'});
 
   if(ClientConfig.climatisationOnce) {
     ClientConfig.climatisationAt = false;    
   }
-
 }
 
 //-------------------------------------------------------------------------------------------

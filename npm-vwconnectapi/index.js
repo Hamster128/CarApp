@@ -1549,7 +1549,7 @@ class VwWeConnect {
                     if (err || (resp && resp.statusCode >= 400)) {
                         this.log.error('getVehicles() failed!');
                         err && this.log.error(err);
-                        resp && this.log.error(resp.statusCode + ' ' + resp.body);
+                        resp && this.log.error(resp.statusCode + ' ' + JSON.stringify(resp.body));
                         return reject();
                     }
                     try {
@@ -2032,7 +2032,7 @@ class VwWeConnect {
                 if (err || (resp && resp.statusCode >= 400)) {
                     this.log.error('get car failed!');
                     err && this.log.error(err);
-                    resp && this.log.error(resp.statusCode);
+                    resp && this.log.error(resp.statusCode.toString() + ' ' + JSON.stringify(resp.body));
                     return reject();
                 }
                 this.log.info("get car: " /*+ JSON.stringify(body)*/);
@@ -2063,7 +2063,7 @@ class VwWeConnect {
                     if (err || (resp && resp.statusCode >= 400)) {
                         this.log.error('get charging status failed!');
                         err && this.log.error(err);
-                        resp && this.log.error(resp.statusCode.toString());
+                        resp && this.log.error(resp.statusCode.toString() + ' ' + JSON.stringify(resp.body));
                         body && this.log.error(JSON.stringify(body));
                         return reject();;
                     }
@@ -2094,7 +2094,7 @@ class VwWeConnect {
                     if (err || (resp && resp.statusCode >= 400)) {
                         this.log.error('get charging settings failed!');
                         err && this.log.error(err);
-                        resp && this.log.error(resp.statusCode.toString());
+                        resp && this.log.error(resp.statusCode.toString() + ' ' + JSON.stringify(resp.body));
                         body && this.log.error(JSON.stringify(body));
                         return reject();
                     }
@@ -2125,7 +2125,7 @@ class VwWeConnect {
                     if (err || (resp && resp.statusCode >= 400)) {
                         this.log.error('get climatisation settings failed!');
                         err && this.log.error(err);
-                        resp && this.log.error(resp.statusCode.toString());
+                        resp && this.log.error(resp.statusCode.toString() + ' ' + JSON.stringify(resp.body));
                         body && this.log.error(JSON.stringify(body));
                         return reject();
                     }
@@ -2156,7 +2156,7 @@ class VwWeConnect {
                     if (err || (resp && resp.statusCode >= 400)) {
                         this.log.error('get climatisation status failed!');
                         err && this.log.error(err);
-                        resp && this.log.error(resp.statusCode.toString());
+                        resp && this.log.error(resp.statusCode.toString() + ' ' + JSON.stringify(resp.body));
                         body && this.log.error(JSON.stringify(body));
                         return reject();
                     }
@@ -2199,7 +2199,7 @@ class VwWeConnect {
             request(opts, (err, resp, body) => {
                     if (err || (resp && resp.statusCode >= 400)) {
                         err && this.log.error(err);
-                        resp && this.log.error(resp.statusCode.toString());
+                        resp && this.log.error(resp.statusCode.toString() + ' ' + JSON.stringify(resp.body));
                         body && this.log.error(JSON.stringify(body));
                         reject();
                         return;
