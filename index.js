@@ -22,6 +22,7 @@ let lastStamp, lastStampStored, prevStamp, lastPollingInterval;
 let retrySecs = 10;
 let CarOfflineMsgSent = true;
 let timedClimatisationRetry = 0;
+let startingTimedClimatisation = false;
 
 let ClientConfig = {
   chargeLimit: 100,
@@ -486,6 +487,10 @@ async function onTimer() {
 
   cleanActiveCommands();
 
+  if(startingTimedClimatisation) {
+    return;
+  }
+
   if(!timedClimatisationRetry) {
     
     if(!ClientConfig.climatisationAt) {
@@ -527,13 +532,17 @@ async function onTimer() {
     return;
   }
 
-  console.log('Starting scheduled climatisation '+timedClimatisationRetry);
-
-  await doCommand({action: 'climatisation', state: 'start'});
-
   if(ClientConfig.climatisationOnce) {
     ClientConfig.climatisationAt = false;    
   }
+
+  console.log('Starting scheduled climatisation '+timedClimatisationRetry);
+
+  startingTimedClimatisation = true;
+
+  await doCommand({action: 'climatisation', state: 'start'});
+
+  startingTimedClimatisation = false;
 }
 
 //-------------------------------------------------------------------------------------------
