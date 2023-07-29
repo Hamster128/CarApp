@@ -14,7 +14,7 @@
     "express": "^4.17.3",
     "moment": "^2.29.1",
     "request": "^2.88.2",
-    "socket.io": "^4.4.1",
+    "socket.io": "^4.7.1",
     "traverse": "^0.6.6"
   }
 }

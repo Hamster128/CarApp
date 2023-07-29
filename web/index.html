@@ -26,7 +26,13 @@
           }
 
           .clicked {
+            border: 10px solid #CCC;
+          }
+          .clicked_start {
             border: 10px solid #0A0;
+          }
+          .clicked_stop {
+            border: 10px solid #C00;
           }
 
           .symbol_td {
@@ -48,6 +54,9 @@
           }
           .blue {
             color: #68F;
+          }
+          .yellow {
+            color: #FD0;
           }
 
           .kw {
@@ -234,6 +243,12 @@
             </tr>
             <tr>
               <td class="switch_td">
+                <label id="climatisation_extend_label" class="switch_label">
+                    <input type="checkbox" class="switch" id="climatisation_extend" onChange="changedClimatisationExtend(this.checked);">Climatisation +30 min</input>
+              </label></td>
+            </tr>
+            <tr>
+              <td class="switch_td">
                 <label id="schedule_climate_label" class="switch_label">
                   <input type="checkbox" class="switch" id="climatisation_at" onChange="changedClimatisationAt(this.checked);">A/C:&nbsp;
                 </label>
@@ -344,15 +359,22 @@
           function clickCharging() {
             socket.emit('log', 'clickCharging');
 
-            if($('#symCharging').hasClass('white')) {
-
-              $('#symCharging').addClass('clicked');
+            if($('#symCharging').hasClass('clicked_stop')) {
               socket.emit('command', {action: 'charging', state: 'start'});
-
-            } else if($('#symCharging').hasClass('green')) {
-
-              $('#symCharging').addClass('clicked');
+            } else if($('#symCharging').hasClass('clicked_start')) {
               socket.emit('command', {action: 'charging', state: 'stop'});
+            } else {
+
+              if($('#symCharging').hasClass('white')) {
+
+                $('#symCharging').addClass('clicked');
+                socket.emit('command', {action: 'charging', state: 'start'});
+
+              } else if($('#symCharging').hasClass('green')) {
+
+                $('#symCharging').addClass('clicked');
+                socket.emit('command', {action: 'charging', state: 'stop'});
+              }
             }
           }
 
@@ -360,18 +382,24 @@
           function clickClimate() {
             socket.emit('log', 'clickClimate');
 
-            if($('#symClimate').hasClass('grey')) {
-
-              $('#symClimate').addClass('clicked');
-
-              sendClimateSettings();
-
+            if(       $('#symClimate').hasClass('clicked_stop')) {
               socket.emit('command', {action: 'climatisation', state: 'start'});
-
-            } else {
-              
-              $('#symClimate').addClass('clicked');
+            } else if($('#symClimate').hasClass('clicked_start')) {
               socket.emit('command', {action: 'climatisation', state: 'stop'});
+            } else {
+
+              if($('#symClimate').hasClass('grey')) {
+
+                $('#symClimate').addClass('clicked');
+
+                sendClimateSettings();
+                socket.emit('command', {action: 'climatisation', state: 'start'});
+
+              } else {
+                
+                $('#symClimate').addClass('clicked');
+                socket.emit('command', {action: 'climatisation', state: 'stop'});
+              }
             }
           }
 
@@ -497,6 +525,12 @@
           }
 
           // -----------------------------------------------------------------------------------------------
+          function changedClimatisationExtend(checked) {
+            Config.climatisationExtend = checked;
+            socket.emit('set_config', Config);
+          }
+
+          // -----------------------------------------------------------------------------------------------
           function sendChargingSettings() {
 
             let body = {
@@ -578,20 +612,9 @@
 
 
             // ---------------------------------------- CHARGING SYMBOL ----------------------------------------
-            $('#symCharging').removeClass(['fa-plug-circle-check', 'fa-plug-circle-xmark', 'fa-plug-circle-minus', 'white', 'grey', 'red', 'clicked']);
+            $('#symCharging').removeClass(['fa-plug-circle-check', 'fa-plug-circle-xmark', 'fa-plug-circle-minus', 'white', 'grey', 'red']);
 
-            if(data.activeCommands['charging']) {
-
-              if(data.activeCommands['charging'].state == 'start') {
-                $('#symCharging').addClass(['fa-plug-circle-bolt', 'green']);
-              } else {
-                if(data.charging.status.plug.plugLockState == 'locked') {
-                  $('#symCharging').addClass(['fa-plug-circle-minus', 'white']);
-                } else {
-                  $('#symCharging').addClass(['fa-plug-circle-check', 'white']);
-                }
-              }
-            } else if(data.charging.status.charging.chargePower_kW) {
+            if(data.charging.status.charging.chargePower_kW) {
 
               $('#symCharging').addClass(['fa-plug-circle-bolt', 'green']);
 
@@ -607,8 +630,18 @@
                 }
               }
             } else {
-
               $('#symCharging').addClass(['fa-plug-circle-xmark', 'grey']);
+            }
+
+
+            $('#symCharging').removeClass(['clicked', 'clicked_start', 'clicked_stop']);
+
+            if(data.activeCommands['charging']) {
+              if(       data.activeCommands['charging'].state == 'start' && !data.charging.status.charging.chargePower_kW) {
+                $('#symCharging').addClass(['clicked_start']);
+              } else if(data.activeCommands['charging'].state == 'stop'  &&  data.charging.status.charging.chargePower_kW) {
+                $('#symCharging').addClass(['clicked_stop']);
+              }
             }
 
             // ---------------------------------------- CHARGING TEXT ----------------------------------------
@@ -628,31 +661,30 @@
             }
 
             // ---------------------------------------- CLIMATISATION SYMBOL ----------------------------------------
-            $('#symClimate').removeClass(['clicked', 'grey', 'green', 'red', 'blue', 'white']);
+            $('#symClimate').removeClass(['clicked', 'grey', 'green', 'red', 'blue', 'white', 'yellow']);
 
-            if(data.activeCommands['climatisation']) {
-              if(data.activeCommands['climatisation'].state == 'start') {
-                if(       data.climatisation.data.climatisationStatus.climatisationState == 'heating') {
-                  $('#symClimate').addClass('red');
-                } else if(data.climatisation.data.climatisationStatus.climatisationState == 'cooling') {
-                  $('#symClimate').addClass('blue');
-                } else if(data.climatisation.data.climatisationStatus.climatisationState == 'ventilation') {
-                  $('#symClimate').addClass('white');
-                } else {
-                  $('#symClimate').addClass('green');
-                }
-              } else {
-                $('#symClimate').addClass('grey');
-              }
-            } else if(!data.status.services.climatisation.active) {
+            if(       data.climatisation.data.climatisationStatus.climatisationState == 'heating') {
+              $('#symClimate').addClass('red');
+            } else if(data.climatisation.data.climatisationStatus.climatisationState == 'cooling') {
+              $('#symClimate').addClass('blue');
+            } else if(data.climatisation.data.climatisationStatus.climatisationState == 'ventilation') {
+              $('#symClimate').addClass('white');
+            } else if(data.climatisation.data.climatisationStatus.climatisationState == 'off') {
               $('#symClimate').addClass('grey');
             } else {
-              if(       data.climatisation.data.climatisationStatus.climatisationState == 'heating') {
-                $('#symClimate').addClass('red');
-              } else if(data.climatisation.data.climatisationStatus.climatisationState == 'cooling') {
-                $('#symClimate').addClass('blue');
-              } else {
-                $('#symClimate').addClass('white');
+              $('#symClimate').addClass('yellow');
+            }
+
+
+            $('#symClimate').removeClass(['clicked', 'clicked_start', 'clicked_stop']);
+
+            if(data.activeCommands['climatisation']) {
+              if(       data.activeCommands['climatisation'].state == 'start' && 
+                        data.climatisation.data.climatisationStatus.climatisationState == 'off') {
+                $('#symClimate').addClass('clicked_start');
+              } else if(data.activeCommands['climatisation'].state == 'stop' && 
+                        data.climatisation.data.climatisationStatus.climatisationState != 'off') {
+                $('#symClimate').addClass('clicked_stop');
               }
             }
 
@@ -689,6 +721,8 @@
             $('#climatisation_sa'  ).prop('checked', data.Config.climatisationtSa);
             $('#climatisation_su'  ).prop('checked', data.Config.climatisationtSu);
             setClimatisationDayVisibillity();
+
+            $('#climatisation_extend'  ).prop('checked', data.Config.climatisationExtend);
 
             if(data.Config.climatisationAt) {
               $('#txtClimateAt').html('&nbsp;&nbsp;<i class="fa-regular fa-clock"></i>');

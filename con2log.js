@@ -14,6 +14,11 @@ process.on('uncaughtException', function(err) {
 })
 
 //--------------------------------------------------------------------------------------
+process.on('unhandledRejection', function(err) {
+  console.log('UNHANDLED REJECTION:', err);
+})
+
+//--------------------------------------------------------------------------------------
 console.log = function() {
 
   let today = moment().format('YYYY-MM-DD');

@@ -23,6 +23,7 @@ let retrySecs = 10;
 let CarOfflineMsgSent = true;
 let timedClimatisationRetry = 0;
 let startingTimedClimatisation = false;
+let climatisationRemainingState = 0;
 
 let ClientConfig = {
   chargeLimit: 100,
@@ -131,6 +132,11 @@ async function doCommand(data) {
     "state": data.state,
     "body" : data.body
   };
+
+  if(data.action == "climatisation" && data.state == "stop") {
+    // cancel climatisation extension
+    climatisationRemainingState = 9;
+  }
 
   console.log(`doCommand ${data.action} ${data.state}...ok`);
   return true;
@@ -256,6 +262,10 @@ function startServer() {
 // get chat_id (=your id) with https://api.telegram.org/bot1...7287:A...ZOuO-WQ/getUpdates after sending a message from you
 async function sendTelegram(text) {
 
+  if(!Config['telegram_token']) {
+    return;
+  }
+
 	let data = { 
     'parse_mode': 'HTML', 
     'text' : text
@@ -357,11 +367,55 @@ async function onNewData() {
     ClientConfig.lastTargetTemp_K = vwConn.vehicles[0].climatisation_settings.settings.targetTemperature_K;
   }
 
+  // check/extend climatisation remaining time
+  let remaining = vwConn.vehicles[0].climatisation.data.climatisationStatus.remainingClimatisationTime_min;
+
+  if(remaining) {
+
+    if(!climatisationRemainingState && remaining > 10) {
+      climatisationRemainingState = 1;
+      console.log('climatisation started', remaining);
+    }
+
+    if(climatisationRemainingState == 1 && remaining < 3) {
+      climatisationRemainingState = 2;
+      console.log('climatisation extension armed', remaining);
+    }
+
+    if(ClientConfig.climatisationExtend) {
+      vwConn.vehicles[0].climatisation.data.climatisationStatus.remainingClimatisationTime_min += 30;
+    }
+
+  } else {
+
+    if(climatisationRemainingState == 2 && ClientConfig.climatisationExtend) {
+
+      console.log('climatisation start extension');
+      ClientConfig.climatisationExtend = false;
+      await doCommand({action: 'climatisation', state: 'start'});
+      
+    } else if(activeCommands['climatisation'] && activeCommands['climatisation'].state == 'start') {
+
+      console.log('climatisation starting');
+
+    } else if(climatisationRemainingState) {
+
+      console.log('climatisation stopped', climatisationRemainingState);
+
+      if(climatisationRemainingState == 2) {
+        sendTelegram(`climatisation stopped`);
+      }
+
+      climatisationRemainingState = 0;
+    }
+  }
+
   // send data to clients
   for(let key in clients) {
     let socket = clients[key];
     sendCurrentData(socket, true);
   }
+
 
   // check charge limit
   if(ClientConfig.chargeLimit < 100 && 
@@ -370,6 +424,16 @@ async function onNewData() {
 
     if(!activeCommands['charging'] || activeCommands['charging'].state != 'stop') {
       console.log('charging limit reached, stopping charging ' + vwConn.vehicles[0].charging.status.battery.currentSOC_pct + '>=' + ClientConfig.chargeLimit);
+
+      if(Config['charing_limit_reached_url']) {
+        try {
+          let res = await axios.get(Config.charing_limit_reached_url);
+          console.log('Fetched charing_limit_reached_url', Config.charing_limit_reached_url, res.status);
+        } catch(e) {
+          console.log('ERROR: fetching charing_limit_reached_url', Config.charing_limit_reached_url, e);
+        }
+      }
+
       await doCommand({action: 'charging', state: 'stop'});
     }
 
