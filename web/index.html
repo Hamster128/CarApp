@@ -738,18 +738,20 @@
 
             if(actData.status.services.climatisation.active) {
 
+              let stamp = moment.utc(actData.climatisation.data.climatisationStatus.carCapturedTimestamp);
+              let age = moment().diff(stamp, 'minutes');
+
+              let remainingMin   = Math.max(actData.climatisation.data.climatisationStatus.remainingClimatisationTime_min - age);
+              let progressBarPct = actData.status.services.climatisation.progressBarPct;
+
+              let txt = `${remainingMin} min`;
+
               if(Config.climatisationExtend) {
-                $('#txtClimate').html(`<i class="fa-solid fa-rotate"></i>`);
-              } else {
-
-                let stamp = moment.utc(actData.climatisation.data.climatisationStatus.carCapturedTimestamp);
-                let age = moment().diff(stamp, 'minutes');
-
-                let remainingMin   = Math.max(actData.climatisation.data.climatisationStatus.remainingClimatisationTime_min - age);
-                let progressBarPct = actData.status.services.climatisation.progressBarPct;
-
-                $('#txtClimate').html(`${remainingMin} min`);
+                txt += `&nbsp;&nbsp;<i class="fa-solid fa-rotate"></i>`;
               }
+
+              $('#txtClimate').html(txt);
+              
             } else {
               let txt = `${temp}°C`;
 
