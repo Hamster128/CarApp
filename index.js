@@ -23,7 +23,6 @@ let retrySecs = 10;
 let CarOfflineMsgSent = true;
 let timedClimatisationRetry = 0;
 let startingTimedClimatisation = false;
-let climatisationRemainingState = 0;
 
 let ClientConfig = {
   chargeLimit: 100,
@@ -118,6 +117,7 @@ async function doCommand(data) {
     await vwConn.setSeatCupraStatus(vwConn.vehicles[0].vin, data.action, data.state, data.body);
   } catch(e) {
     console.error(`doCommand ${data.action} ${data.state}...${e}`);
+    sendProblem2clients(`Command failed!`);
     return false;
   }
 
@@ -135,7 +135,7 @@ async function doCommand(data) {
 
   if(data.action == "climatisation" && data.state == "stop") {
     // cancel climatisation extension
-    climatisationRemainingState = 9;
+    ClientConfig.climatisationExtend = false;
   }
 
   console.log(`doCommand ${data.action} ${data.state}...ok`);
@@ -367,55 +367,39 @@ async function onNewData() {
     ClientConfig.lastTargetTemp_K = vwConn.vehicles[0].climatisation_settings.settings.targetTemperature_K;
   }
 
-  // check/extend climatisation remaining time
-  let remaining = vwConn.vehicles[0].climatisation.data.climatisationStatus.remainingClimatisationTime_min;
-
-  if(remaining) {
-
-    if(!climatisationRemainingState && remaining > 10) {
-      climatisationRemainingState = 1;
-      console.log('climatisation started', remaining);
-    }
-
-    if(climatisationRemainingState == 1 && remaining < 3) {
-      climatisationRemainingState = 2;
-      console.log('climatisation extension armed', remaining);
-    }
-
-    if(ClientConfig.climatisationExtend) {
-      vwConn.vehicles[0].climatisation.data.climatisationStatus.remainingClimatisationTime_min += 30;
-    }
-
-  } else {
-
-    if(climatisationRemainingState == 2 && ClientConfig.climatisationExtend) {
-
-      console.log('climatisation start extension');
-      ClientConfig.climatisationExtend = false;
-      await doCommand({action: 'climatisation', state: 'start'});
-      
-    } else if(activeCommands['climatisation'] && activeCommands['climatisation'].state == 'start') {
-
-      console.log('climatisation starting');
-
-    } else if(climatisationRemainingState) {
-
-      console.log('climatisation stopped', climatisationRemainingState);
-
-      if(climatisationRemainingState == 2) {
-        sendTelegram(`climatisation stopped`);
-      }
-
-      climatisationRemainingState = 0;
-    }
-  }
-
   // send data to clients
   for(let key in clients) {
     let socket = clients[key];
     sendCurrentData(socket, true);
   }
+  
+  // check/extend climatisation remaining time
+  let stamp = moment.utc(vwConn.vehicles[0].climatisation.data.climatisationStatus.carCapturedTimestamp);
+  let age = moment().diff(stamp, 'minutes');
 
+  let remaining = Math.max(0, vwConn.vehicles[0].climatisation.data.climatisationStatus.remainingClimatisationTime_min - age);
+
+  if(remaining) {
+
+    console.log(`climatisation ${remaining} ${ClientConfig.climatisationExtend}`);
+
+  } else {
+
+    if(activeCommands['climatisation'] && activeCommands['climatisation'].state == 'start') {
+
+      console.log('climatisation starting');
+
+    } else if(ClientConfig.climatisationExtend) {
+
+      console.log('climatisation start extension');
+
+      if(await doCommand({action: 'climatisation', state: 'start'})) {
+        onNewData();
+        return;
+      }
+
+    }
+  }
 
   // check charge limit
   if(ClientConfig.chargeLimit < 100 && 
@@ -452,7 +436,7 @@ async function onNewData() {
   let secs = Config.refresh_secs;
 
   // slow polling when not needed
-  if(!Object.keys(clients).length && !Object.keys(activeCommands).length && (ClientConfig.chargeLimit == 100 || vwConn.vehicles[0].charging.status.charging.chargePower_kW == 0) ) {
+  if(!ClientConfig.climatisationExtend && !Object.keys(clients).length && !Object.keys(activeCommands).length && (ClientConfig.chargeLimit == 100 || vwConn.vehicles[0].charging.status.charging.chargePower_kW == 0) ) {
 
     let data = vwConn.vehicles[0];
     let stamp = moment.utc(data.charging.status.battery.carCapturedTimestamp);

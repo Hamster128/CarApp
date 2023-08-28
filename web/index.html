@@ -201,7 +201,7 @@
             </tr>
             <tr style="height:100px">
               <td id="txtCharging" class="symbol_td"></td>
-              <td class="symbol_td"><span id="txtClimate"></span><span id="txtClimateAt"></span></td>
+              <td class="symbol_td"><span id="txtClimate"></span></td>
             </tr>
             <tr><td style="height: 200px;"></td></tr>
           </table>
@@ -244,7 +244,7 @@
             <tr>
               <td class="switch_td">
                 <label id="climatisation_extend_label" class="switch_label">
-                    <input type="checkbox" class="switch" id="climatisation_extend" onChange="changedClimatisationExtend(this.checked);">Climatisation +30 min</input>
+                    <input type="checkbox" class="switch" id="climatisation_extend" onChange="changedClimatisationExtend(this.checked);">Keep climate on</input>
               </label></td>
             </tr>
             <tr>
@@ -323,6 +323,8 @@
           let Config = {
             chargeLimit: 100
           };
+
+          let actData, temp;
 
           // -----------------------------------------------------------------------------------------------
           window.addEventListener("error", function (e) {
@@ -474,6 +476,7 @@
           function changedClimatisationAt(checked) {
             Config.climatisationAt = checked;
             socket.emit('set_config', Config);
+            updateClimatisationText();
           }
 
           // -----------------------------------------------------------------------------------------------
@@ -528,6 +531,7 @@
           function changedClimatisationExtend(checked) {
             Config.climatisationExtend = checked;
             socket.emit('set_config', Config);
+            updateClimatisationText();
           }
 
           // -----------------------------------------------------------------------------------------------
@@ -565,6 +569,8 @@
             if(data.newData) {
               $('#problem').html('&nbsp;');
             }
+
+            actData = data;
 
             $('#soc').html(data.charging.status.battery.currentSOC_pct);
             $('#soc_meter').prop('value', data.charging.status.battery.currentSOC_pct);
@@ -691,8 +697,6 @@
             // ---------------------------------------- CLIMATISATION SETTINGS-------------------------------------
             $('#climatemp').removeClass('green');
 
-            let temp;
-
             if(data.activeCommands['climatisation_settings']) {
 
               if(data.activeCommands['climatisation_settings'].body.targetTemperature_K != data.climatisation_settings.settings.targetTemperature_K) {
@@ -724,24 +728,43 @@
 
             $('#climatisation_extend'  ).prop('checked', data.Config.climatisationExtend);
 
-            if(data.Config.climatisationAt) {
-              $('#txtClimateAt').html('&nbsp;&nbsp;<i class="fa-regular fa-clock"></i>');
-            } else {
-              $('#txtClimateAt').html('');
-            }
-
             // ---------------------------------------- CLIMATISATION TEXT ----------------------------------------
-            if(data.status.services.climatisation.active) {
-
-              let remainingMin   = data.climatisation.data.climatisationStatus.remainingClimatisationTime_min;
-              let progressBarPct = data.status.services.climatisation.progressBarPct;
-
-              $('#txtClimate').html(`${remainingMin} min`);
-            } else {
-              $('#txtClimate').html(`${temp}°C`);
-            }
+            updateClimatisationText();
 
           });
+
+          // -----------------------------------------------------------------------------------------------
+          function updateClimatisationText() {
+
+            if(actData.status.services.climatisation.active) {
+
+              if(Config.climatisationExtend) {
+                $('#txtClimate').html(`<i class="fa-solid fa-rotate"></i>`);
+              } else {
+
+                let stamp = moment.utc(actData.climatisation.data.climatisationStatus.carCapturedTimestamp);
+                let age = moment().diff(stamp, 'minutes');
+
+                let remainingMin   = Math.max(actData.climatisation.data.climatisationStatus.remainingClimatisationTime_min - age);
+                let progressBarPct = actData.status.services.climatisation.progressBarPct;
+
+                $('#txtClimate').html(`${remainingMin} min`);
+              }
+            } else {
+              let txt = `${temp}°C`;
+
+              if(Config.climatisationAt) {
+                txt += '&nbsp;&nbsp;<i class="fa-regular fa-clock"></i>';
+              }
+
+              if(Config.climatisationExtend) {
+                txt += `&nbsp;&nbsp;<i class="fa-solid fa-rotate"></i>`;
+              }
+
+              $('#txtClimate').html(txt);
+            }
+
+          }
 
           // -----------------------------------------------------------------------------------------------
           function updateSOCtime() {
