@@ -23,6 +23,7 @@ let retrySecs = 10;
 let CarOfflineMsgSent = true;
 let timedClimatisationRetry = 0;
 let startingTimedClimatisation = false;
+let chargingState = 0, maxKw = 0, startingPercent = 0, chargingStart;
 
 let ClientConfig = {
   chargeLimit: 100,
@@ -351,6 +352,21 @@ function storeData(force) {
 
 }
 
+function chargingStopMessage(msg, telegram) {
+
+  let chargedPercent = maxKw ? vwConn.vehicles[0].charging.status.battery.currentSOC_pct - startingPercent : 0;
+  let chargedkWh = chargedPercent ? parseFloat(Config.battery_kwh) / chargedPercent * 100 : 0;
+  let hours = chargingStart ? moment().utc().diff(chargingStart, 'h') : 0;
+  let avgkW = hours ? chargedkWh / hours : 0;
+
+  console.log(`${msg}, charged: ${chargedPercent} %, ${chargedkWh} kWh, max: ${maxKw} kW, avg: ${avgkW} kW`);
+
+  if(Config.telegram_external_power_errors) {
+    sendTelegram(`${msg}, charged: ${chargedPercent} %, ${chargedkWh} kWh, max: ${maxKw} kW, avg: ${avgkW} kW`);
+  }
+
+}
+
 //-------------------------------------------------------------------------------------------
 async function onNewData() {
 
@@ -373,6 +389,70 @@ async function onNewData() {
     sendCurrentData(socket, true);
   }
   
+  // check external power errors
+  if(vwConn.vehicles[0].charging.status.plug.plugConnectionState == 'connected') {
+  
+    if(vwConn.vehicles[0].charging.status.plug.externalPower == 'unavailable') {
+
+      if(chargingState != -1) {
+
+        chargingState = -1;
+        chargingStopMessage('No external power', Config.telegram_external_power_errors);
+
+        maxKw = 0;
+        chargingStart = 0;
+      }
+    } else {
+
+      let kw = vwConn.vehicles[0].charging.status.charging.chargePower_kW;
+
+      if(kw) {
+
+        if(chargingState != 2) {
+
+          chargingState = 2;
+          maxKw = kw;
+          startingPercent = vwConn.vehicles[0].charging.status.battery.currentSOC_pct;
+          chargingStart = moment.utc(vwConn.vehicles[0].charging.status.battery.carCapturedTimestamp);
+      
+          console.log(`Charging started ${kw} kW`);
+        }
+
+        maxKw = Math.max(maxKw, kw);
+
+      } else {
+
+        if(chargingState == -1) {
+          console.log(`external power on`);
+        }
+
+        if(chargingState == 2) {
+          chargingStopMessage('Charging stopped', Config.telegram_charging_stopped);
+        }
+
+        chargingState = 1;
+        maxKw = 0;
+        chargingStart = 0;
+      }
+    }
+
+  } else {
+
+    if(chargingState != 0) {
+
+      if(maxKw) {
+
+        chargingStopMessage('Unplugged', Config.telegram_charging_stopped);
+        
+        maxKw = 0;
+        chargingStart = 0;
+      }
+
+      chargingState = 0;
+      console.log(`unplugged`);
+    }
+  }
+
   // check/extend climatisation remaining time
   let stamp = moment.utc(vwConn.vehicles[0].climatisation.data.climatisationStatus.carCapturedTimestamp);
   let age = moment().diff(stamp, 'minutes');
