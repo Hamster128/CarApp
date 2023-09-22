@@ -11,5 +11,13 @@
   "slow_refresh_age_secs": 900,
   "drive_refresh_secs": 30,
   "abrp_api_key": "9552e0b7-e367-4168-803e-c76a5b61005a",
-  "abrp_user_token": ""
+  "abrp_user_token": "",
+  "battery_kwh": 58,
+  "telegram_token": "{your chat id}:{your_token}",
+  "telegram_chat_id": "{your chat id}",
+  "telegram_on_wakeup": false,
+  "telegram_on_offline": false,
+  "telegram_on_online": false,
+  "telegram_external_power_errors": true,
+  "telegram_charging_stopped": true
 }
