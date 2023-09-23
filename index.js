@@ -137,6 +137,7 @@ async function doCommand(data) {
   if(data.action == "climatisation" && data.state == "stop") {
     // cancel climatisation extension
     ClientConfig.climatisationExtend = false;
+    saveClientConfig();
   }
 
   console.log(`doCommand ${data.action} ${data.state}...ok`);
@@ -453,7 +454,7 @@ async function onNewData() {
     }
   }
 
-  // check/extend climatisation remaining time
+  // keep cimate on
   let stamp = moment.utc(vwConn.vehicles[0].climatisation.data.climatisationStatus.carCapturedTimestamp);
   let age = moment().diff(stamp, 'minutes');
 
@@ -473,11 +474,15 @@ async function onNewData() {
 
       console.log('climatisation start extension');
 
-      if(await doCommand({action: 'climatisation', state: 'start'})) {
-        onNewData();
-        return;
+      if(vwConn.vehicles[0].charging.status.battery.currentSOC_pct <= 20) {
+        ClientConfig.climatisationExtend = false;
+        saveClientConfig();
+      } else {
+        if(await doCommand({action: 'climatisation', state: 'start'})) {
+          onNewData();
+          return;
+        }
       }
-
     }
   }
 
