@@ -459,10 +459,11 @@ async function onNewData() {
   let age = moment().diff(stamp, 'minutes');
 
   let remaining = Math.max(0, vwConn.vehicles[0].climatisation.data.climatisationStatus.remainingClimatisationTime_min - age);
+  let climState = vwConn.vehicles[0].climatisation.data.climatisationStatus.climatisationState;
 
-  if(remaining) {
+  if(remaining || climState != 'off') {
 
-    console.log(`climatisation ${remaining} ${ClientConfig.climatisationExtend}`);
+    console.log(`climatisation ${climState} ${remaining} min, keep on:${ClientConfig.climatisationExtend}`);
 
   } else {
 
@@ -472,12 +473,17 @@ async function onNewData() {
 
     } else if(ClientConfig.climatisationExtend) {
 
-      console.log('climatisation start extension');
-
       if(vwConn.vehicles[0].charging.status.battery.currentSOC_pct <= 20) {
+
+        console.log(`climatisation extension stopped, SOC ${vwConn.vehicles[0].charging.status.battery.currentSOC_pct}%`);
+
         ClientConfig.climatisationExtend = false;
         saveClientConfig();
+
       } else {
+
+        console.log('climatisation start extension');
+
         if(await doCommand({action: 'climatisation', state: 'start'})) {
           onNewData();
           return;
