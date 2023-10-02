@@ -173,7 +173,7 @@
             <tr>
               <td colspan=2>
                 <h1 id="title" style="text-align: center;" onClick="update();">&nbsp;</h1>
-                <h2 id="problem" style="text-align: center;" onClick="update();">updateing...</h2>
+                <h2 id="problem" style="text-align: center;" onClick="update();">&nbsp;</h2>
                 <br>
               </td>
             </tr>
@@ -553,7 +553,7 @@
 
           // -----------------------------------------------------------------------------------------------
           socket.io.on('reconnect', function() {
-            $('#problem').html('updateing...');
+            $('#problem').html('&nbsp;');
           });
 
           // -----------------------------------------------------------------------------------------------

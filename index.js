@@ -363,7 +363,7 @@ function chargingStopMessage(msg, telegram) {
   console.log(`${msg}, charged: ${chargedPercent} %, ${chargedkWh} kWh, max: ${maxKw} kW, avg: ${avgkW} kW`);
 
   if(Config.telegram_external_power_errors) {
-    sendTelegram(`${msg}, charged: ${chargedPercent} %, ${chargedkWh} kWh, max: ${maxKw} kW, avg: ${avgkW} kW`);
+    sendTelegram(`${msg}, charged: ${startingPercent} - ${vwConn.vehicles[0].charging.status.battery.currentSOC_pct} %, ${chargedkWh.toFixed(1)} kWh, max: ${maxKw.toFixed(1)}kW, avg: ${avgkW.toFixed(1)} kW`);
   }
 
 }
