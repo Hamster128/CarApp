@@ -178,7 +178,7 @@
               </td>
             </tr>
             <tr>
-              <td id="soc_limit_clr"><span id="soc_limit"></span>%&nbsp;</td>
+              <td id="soc_limit_clr"><span id="soc_limit"></span><span id="soc_rlimit"></span>%&nbsp;</td>
               <td>
                 <input type="range" min="0" max="100" step="10" value="50" class="slider" id="limit_slider" style="width:100%;" onInput="changingChargeLimit(this.value);" onChange="setChargeLimit(this.value);">
               </td>
@@ -451,8 +451,12 @@
 
             if(app_limit < charge_limit) {
               $('#soc_limit_clr').addClass('red');
+              $('#soc_rlimit').html(app_limit);
+              $('#soc_limit').css('display', 'none');
             } else {
               $('#soc_limit_clr').removeClass('red');
+              $('#soc_rlimit').html('');
+              $('#soc_limit').css('display', '');
             }
           }
 
