@@ -356,7 +356,7 @@ function storeData(force) {
 function chargingStopMessage(msg, telegram) {
 
   let chargedPercent = maxKw ? vwConn.vehicles[0].charging.status.battery.currentSOC_pct - startingPercent : 0;
-  let chargedkWh = chargedPercent ? parseFloat(Config.battery_kwh) / chargedPercent * 100 : 0;
+  let chargedkWh = chargedPercent ? parseFloat(Config.battery_kwh) * chargedPercent / 100 : 0;
   let hours = chargingStart ? moment().utc().diff(chargingStart, 'h') : 0;
   let avgkW = hours ? chargedkWh / hours : 0;
 
