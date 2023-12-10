@@ -243,6 +243,53 @@
             </tr>
             <tr>
               <td class="switch_td">
+                <label id="schedule_charging_label" class="switch_label">
+                  <input type="checkbox" class="switch" id="charging_at" onChange="changedChargingAt(this.checked);">Charging:&nbsp;
+                </label>
+                <select class="select" id="charging_at_h" onChange="changedChargingAtTime();">
+                  <option value="0">00</option>
+                  <option value="1">01</option>
+                  <option value="2">02</option>
+                  <option value="3">03</option>
+                  <option value="4">04</option>
+                  <option value="5">05</option>
+                  <option value="6">06</option>
+                  <option value="7">07</option>
+                  <option value="8">08</option>
+                  <option value="9">09</option>
+                  <option value="10">10</option>
+                  <option value="11">11</option>
+                  <option value="12">12</option>
+                  <option value="13">13</option>
+                  <option value="14">14</option>
+                  <option value="15">15</option>
+                  <option value="16">16</option>
+                  <option value="17">17</option>
+                  <option value="18">18</option>
+                  <option value="19">19</option>
+                  <option value="20">20</option>
+                  <option value="21">21</option>
+                  <option value="22">22</option>
+                  <option value="23">23</option>
+                </select>
+                :
+                <select class="select" id="charging_at_m" onChange="changedChargingAtTime();">
+                  <option value="0">00</option>
+                  <option value="5">05</option>
+                  <option value="10">10</option>
+                  <option value="15">15</option>
+                  <option value="20">20</option>
+                  <option value="25">25</option>
+                  <option value="30">30</option>
+                  <option value="35">35</option>
+                  <option value="40">40</option>
+                  <option value="45">45</option>
+                  <option value="50">50</option>
+                  <option value="55">55</option>
+                </select>
+              </td>
+            <tr>
+              <td class="switch_td">
                 <label id="climatisation_extend_label" class="switch_label">
                     <input type="checkbox" class="switch" id="climatisation_extend" onChange="changedClimatisationExtend(this.checked);">Keep climate on</input>
               </label></td>
@@ -477,6 +524,20 @@
           }
 
           // -----------------------------------------------------------------------------------------------
+          function changedChargingAt(checked) {
+            Config.chargingAt = checked;
+            socket.emit('set_config', Config);
+          }
+
+          // -----------------------------------------------------------------------------------------------
+          function changedChargingAtTime() {
+            Config.chargingAtH = parseInt($('#charging_at_h').val());
+            Config.chargingAtM = parseInt($('#charging_at_m').val());
+            socket.emit('set_config', Config);
+          }
+          
+          
+          // -----------------------------------------------------------------------------------------------
           function changedClimatisationAt(checked) {
             Config.climatisationAt = checked;
             socket.emit('set_config', Config);
@@ -622,7 +683,7 @@
 
 
             // ---------------------------------------- CHARGING SYMBOL ----------------------------------------
-            $('#symCharging').removeClass(['fa-plug-circle-check', 'fa-plug-circle-xmark', 'fa-plug-circle-minus', 'white', 'grey', 'red']);
+            $('#symCharging').removeClass(['fa-plug-circle-check', 'fa-plug-circle-xmark', 'fa-plug-circle-minus', 'fa-circle-question', 'white', 'grey', 'red', 'yellow']);
 
             if(data.charging.status.charging.chargePower_kW) {
 
@@ -639,10 +700,11 @@
                   $('#symCharging').addClass(['fa-plug-circle-check', 'white']);
                 }
               }
+            } else if(data.charging.status.plug.plugConnectionState == 'unknown') {
+              $('#symCharging').addClass(['fa-circle-question', 'yellow']);
             } else {
               $('#symCharging').addClass(['fa-plug-circle-xmark', 'grey']);
             }
-
 
             $('#symCharging').removeClass(['clicked', 'clicked_start', 'clicked_stop']);
 
@@ -667,11 +729,18 @@
                                      data.status.services.charging.targetPct + '%&nbsp;' + 
                                      finishedAt.format('HH:mm'));
             } else {
-              $('#txtCharging').html('');
+
+              let txt = '';
+              if(Config.chargingAt) {
+                txt = '<i class="fa-regular fa-clock"></i>';
+              }
+
+              $('#txtCharging').html(txt);
+
             }
 
             // ---------------------------------------- CLIMATISATION SYMBOL ----------------------------------------
-            $('#symClimate').removeClass(['clicked', 'grey', 'green', 'red', 'blue', 'white', 'yellow']);
+            $('#symClimate').removeClass(['fa-circle-question', 'clicked', 'grey', 'green', 'red', 'blue', 'white', 'yellow']).addClass('fa-fan');
 
             if(       data.climatisation.data.climatisationStatus.climatisationState == 'heating') {
               $('#symClimate').addClass('red');
@@ -681,10 +750,11 @@
               $('#symClimate').addClass('white');
             } else if(data.climatisation.data.climatisationStatus.climatisationState == 'off') {
               $('#symClimate').addClass('grey');
+            } else if(data.climatisation.data.climatisationStatus.climatisationState == 'unknown') {
+              $('#symClimate').removeClass('fa-fan').addClass(['fa-circle-question', 'yellow']);
             } else {
               $('#symClimate').addClass('yellow');
             }
-
 
             $('#symClimate').removeClass(['clicked', 'clicked_start', 'clicked_stop']);
 
@@ -712,6 +782,10 @@
             } else {
               temp = data.climatisation_settings.settings.targetTemperature_K - 273.15;  // K -> C
             }
+
+            $('#charging_at').prop('checked', data.Config.chargingAt);
+            $('#charging_at_h').val(data.Config.chargingAtH);
+            $('#charging_at_m').val(data.Config.chargingAtM);
 
             $('#climatemp').html(temp+"°C");
             $('#climatemp_slider').prop('value', temp);

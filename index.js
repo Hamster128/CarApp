@@ -3,6 +3,7 @@ const http = require('http');
 const express = require('express')
 const moment = require('moment')
 const axios = require('axios')
+const _  = require('underscore');
 
 const api = require('./npm-vwconnectapi');
 
@@ -21,12 +22,15 @@ let updateTimeout;
 let lastStamp, lastStampStored, prevStamp, lastPollingInterval;
 let retrySecs = 10;
 let CarOfflineMsgSent = true;
-let timedClimatisationRetry = 0;
-let startingTimedClimatisation = false;
+let timedClimatisationRetry = 0, timedChargingRetry = 0;
+let startingTimedClimatisation = false, startingTimedCharging = false;;
 let chargingState = 0, maxKw = 0, startingPercent = 0, chargingStart;
 
 let ClientConfig = {
   chargeLimit: 100,
+  chargingAt: false,
+  chargingAtH: 20,
+  chargingAtM: 0,
   climatisationAt: false,
   climatisationAtH: 7,
   climatisationAtM: 0,
@@ -61,6 +65,15 @@ function cleanActiveCommands() {
     let seconds = moment.utc().diff(command.stamp, 'seconds');
 
     if(seconds >= Config.command_timeout_secs) {
+
+      if(key == 'climatisation' && command.state == "start" && Config.telegram_failed_climatisation) {
+        let climState = vwConn.vehicles[0].climatisation.data.climatisationStatus.climatisationState;
+
+        if(climState == "off") {
+          sendTelegram(`Climatisation failed!`);
+        }
+      }
+    
       delete activeCommands[key];
     }
   }
@@ -110,38 +123,49 @@ async function sendData2abrp() {
 }
 
 //-------------------------------------------------------------------------------------------
-async function doCommand(data) {
+let doCommandPromise = Promise.resolve();
 
-  console.log(`doCommand ${data.action} ${data.state} ${JSON.stringify(data.body)}...`);
+function doCommand(data) {
 
-  try {
-    await vwConn.setSeatCupraStatus(vwConn.vehicles[0].vin, data.action, data.state, data.body);
-  } catch(e) {
-    console.error(`doCommand ${data.action} ${data.state}...${e}`);
-    sendProblem2clients(`Command failed!`);
-    return false;
-  }
+  return new Promise((resolve, reject) => {
 
-  let key = data.action;
+    console.log(`doCommand ${data.action} ${data.state} ${JSON.stringify(data.body)}...`);
 
-  if(data.state == "settings") {
-    key += '_' + data.state;
-  }
+    doCommandPromise = doCommandPromise.then(
 
-  activeCommands[key] = {
-    "stamp": moment().utc(),
-    "state": data.state,
-    "body" : data.body
-  };
+      vwConn.setSeatCupraStatus(vwConn.vehicles[0].vin, data.action, data.state, data.body)
 
-  if(data.action == "climatisation" && data.state == "stop") {
-    // cancel climatisation extension
-    ClientConfig.climatisationExtend = false;
-    saveClientConfig();
-  }
+    ).then(()=>{
 
-  console.log(`doCommand ${data.action} ${data.state}...ok`);
-  return true;
+      let key = data.action;
+  
+      if(data.state == "settings") {
+        key += '_' + data.state;
+      }
+    
+      activeCommands[key] = {
+        "stamp": moment().utc(),
+        "state": data.state,
+        "body" : data.body
+      };
+    
+      if(data.action == "climatisation" && data.state == "stop") {
+        // cancel climatisation extension
+        ClientConfig.climatisationExtend = false;
+        saveClientConfig();
+      }
+    
+      console.log(`doCommand ${data.action} ${data.state}...ok`);
+      resolve(true);
+
+    }).catch((e) => {
+
+      console.error(`doCommand ${data.action} ${data.state}...${e}`);
+      sendProblem2clients(`Command failed!`);
+      resolve(false);
+    })
+
+  });
 }
 
 //-------------------------------------------------------------------------------------------
@@ -357,13 +381,13 @@ function chargingStopMessage(msg, telegram) {
 
   let chargedPercent = maxKw ? vwConn.vehicles[0].charging.status.battery.currentSOC_pct - startingPercent : 0;
   let chargedkWh = chargedPercent ? parseFloat(Config.battery_kwh) * chargedPercent / 100 : 0;
-  let hours = chargingStart ? moment().utc().diff(chargingStart, 'h') : 0;
+  let hours = chargingStart ? moment().diff(chargingStart, 'h', true) : 0;
   let avgkW = hours ? chargedkWh / hours : 0;
 
   console.log(`${msg}, charged: ${chargedPercent} %, ${chargedkWh} kWh, max: ${maxKw} kW, avg: ${avgkW} kW`);
 
   if(Config.telegram_external_power_errors) {
-    sendTelegram(`${msg}, charged: ${startingPercent} - ${vwConn.vehicles[0].charging.status.battery.currentSOC_pct} %, ${chargedkWh.toFixed(1)} kWh, max: ${maxKw.toFixed(1)}kW, avg: ${avgkW.toFixed(1)} kW`);
+    sendTelegram(`${msg}, charged: ${startingPercent}-${vwConn.vehicles[0].charging.status.battery.currentSOC_pct}%, ${chargedkWh.toFixed(1)} kWh, max: ${maxKw.toFixed(1)}kW, avg: ${avgkW.toFixed(1)} kW`);
   }
 
 }
@@ -377,7 +401,57 @@ async function onNewData() {
     startServer();
   }
 
-  // sometimes the target temperature is not available
+  // repair data from server
+  let desired = {
+    charging: {
+      status: {
+        battery: {
+          currentSOC_pct: 0
+        },
+        charging: {
+          chargePower_kW: 0
+        },
+        plug : {
+          plugConnectionState: 'unknown',
+          externalPower: 'unknwon',
+          plugLockState: 'unknown'
+        }
+      }
+    },
+    climatisation: {
+      data: {
+        climatisationStatus: {
+          climatisationState: "unknown",
+          carCapturedTimestamp: 0
+        }
+      }
+    },
+    services: {
+      charging: {
+        targetPct: 0
+      }
+    },
+    climatisation_settings : {
+      settings: {
+      }
+    },
+    charging_settings: {
+      settings: {
+      }
+    },
+    status: {
+      services: {
+        charging: {
+          remainingTime: 0,
+          targetPct: 0
+        }
+      }
+    }
+  }
+
+  vwConn.vehicles[0] = _.extend(desired, vwConn.vehicles[0]);
+
+  // sometimes the target temperature is not valid
   if(vwConn.vehicles[0].climatisation_settings.settings.targetTemperature_K - 273.15 < 18.0) {
     vwConn.vehicles[0].climatisation_settings.settings.targetTemperature_K = ClientConfig.lastTargetTemp_K;
   } else {
@@ -416,7 +490,7 @@ async function onNewData() {
           startingPercent = vwConn.vehicles[0].charging.status.battery.currentSOC_pct;
           chargingStart = moment.utc(vwConn.vehicles[0].charging.status.battery.carCapturedTimestamp);
       
-          console.log(`Charging started ${kw} kW`);
+          console.log(`Charging started ${kw} kW, ${chargingStart}`);
         }
 
         maxKw = Math.max(maxKw, kw);
@@ -625,6 +699,12 @@ function saveClientConfig() {
 async function onTimer() {
 
   cleanActiveCommands();
+  checkTimedClimatisation();
+  checkTimedCharging();
+}
+
+//-------------------------------------------------------------------------------------------
+async function checkTimedClimatisation() {
 
   if(startingTimedClimatisation) {
     return;
@@ -654,7 +734,7 @@ async function onTimer() {
       if(now.day() == 6 && !ClientConfig.climatisationSa) return;
     }
 
-    timedClimatisationRetry = 300;  // try it 5 min
+    timedClimatisationRetry = 600;  // try it 10 min
 
   } else {
     timedClimatisationRetry --;
@@ -682,6 +762,55 @@ async function onTimer() {
   await doCommand({action: 'climatisation', state: 'start'});
 
   startingTimedClimatisation = false;
+}
+
+//-------------------------------------------------------------------------------------------
+async function checkTimedCharging() {
+
+  if(startingTimedCharging) {
+    return;
+  }
+
+  if(!timedChargingRetry) {
+    
+    if(!ClientConfig.chargingAt) {
+      return;
+    }
+  
+    let now = moment();
+  
+    if(now.hours()   != ClientConfig.chargingAtH ||
+       now.minutes() != ClientConfig.chargingAtM    ) {
+  
+      return;
+    }
+  
+    timedChargingRetry = 7200;  // try it 120 min
+
+  } else {
+    timedChargingRetry --;
+  }
+
+
+  if(activeCommands['charging'] && activeCommands['charging'].state == 'start') {
+    return;
+  }
+
+  let state = vwConn.vehicles[0].charging.status.charging.chargePower_kW;
+
+  if(state) {
+    return;
+  }
+
+  ClientConfig.chargingAt = false;    
+
+  console.log('Starting scheduled charging '+timedChargingRetry);
+
+  startingTimedCharging = true;
+
+  await doCommand({action: 'charging', state: 'start'});
+
+  startingTimedCharging = false;
 }
 
 //-------------------------------------------------------------------------------------------

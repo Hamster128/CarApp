@@ -7,6 +7,7 @@ let oldConsoleLog = console.log;
 let logStream, logDate;
 
 exports.keepFilesDays = 40;
+exports.logPath = './logs';
 
 //--------------------------------------------------------------------------------------
 process.on('uncaughtException', function(err) {
@@ -30,14 +31,14 @@ console.log = function() {
 
   if(!logStream) {
 
-    if (!fs.existsSync('logs')) {
-      fs.mkdirSync('logs')
+    if (!fs.existsSync(exports.logPath)) {
+      fs.mkdirSync(exports.logPath)
     }
 
-    deleteOldFiles('./logs/', exports.keepFilesDays);
+    deleteOldFiles(`${exports.logPath}/`, exports.keepFilesDays);
 
     logDate = today;
-    logStream = fs.createWriteStream(`logs/${logDate}.log`, { flags: 'a' });
+    logStream = fs.createWriteStream(`${exports.logPath}/${logDate}.log`, { flags: 'a' });
   }
 
   let stamp = moment().format('YYYY-MM-DD HH:mm:ss');
@@ -88,5 +89,3 @@ function walkDir(dir, callback) {
       walkDir(dirPath, callback) : callback(path.join(dir, f));
   });
 };
-
-console.log('*** PROCESS START ***');
