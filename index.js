@@ -357,6 +357,9 @@ function storeData(force) {
     + ';' + (activeCommands['climatisation'] ? activeCommands['climatisation'].state : '')
     + ';' + data.climatisation.data.windowHeatingStatus.windowHeatingStatus[0].windowHeatingState
     + ';' + data.climatisation.data.windowHeatingStatus.windowHeatingStatus[1].windowHeatingState
+    + ';' + data.status.measurements.mileageKm
+    + ';' + data.parkingposition.lat
+    + ';' + data.parkingposition.lon
     + '\n';
   
   if (!fs.existsSync('data')) {
@@ -366,7 +369,7 @@ function storeData(force) {
   let filename = 'data/' + now.format('YYYY-MM') + '.csv';
 
   if(!fs.existsSync(filename)) {
-    logData = 'stamp;stamp car;soc;charging;kW;connected;plug locked;external power;charging cmd;AC current;target soc;climatisation;remaining mins;temp;climatisation cmd;window heating front;window heating back\n' + logData;
+    logData = 'stamp;stamp car;soc;charging;kW;connected;plug locked;external power;charging cmd;AC current;target soc;climatisation;remaining mins;temp;climatisation cmd;window heating front;window heating back;km;lat;lon\n' + logData;
   }
 
   fs.appendFile(filename, logData, err => {
@@ -445,7 +448,14 @@ async function onNewData() {
           remainingTime: 0,
           targetPct: 0
         }
+      },
+      measurements: {
+        mileageKm: 0
       }
+    },
+    parkingposition: {
+      lat: 0,
+      lon: 0
     }
   }
 
@@ -464,7 +474,7 @@ async function onNewData() {
     sendCurrentData(socket, true);
   }
   
-  // check external power errors
+  // check and send charging notifications
   if(vwConn.vehicles[0].charging.status.plug.plugConnectionState == 'connected') {
   
     if(vwConn.vehicles[0].charging.status.plug.externalPower == 'unavailable') {
@@ -593,6 +603,8 @@ async function onNewData() {
 
   sendData2abrp();
   storeData();
+
+//  fs.writeFileSync('data/dump.json', JSON.stringify(vwConn.vehicles[0], null, 2), 'utf8');
 
   if(updateTimeout) {
     return;
@@ -751,11 +763,12 @@ async function checkTimedClimatisation() {
     return;
   }
 
-  if(ClientConfig.climatisationOnce) {
-    ClientConfig.climatisationAt = false;    
-  }
+  console.log(`Starting scheduled climatisation retry[secs]:${timedClimatisationRetry} state=${state} climatisationAt=${ClientConfig.climatisationAt}`);
 
-  console.log('Starting scheduled climatisation '+timedClimatisationRetry);
+  if(ClientConfig.climatisationOnce && ClientConfig.climatisationAt) {
+    ClientConfig.climatisationAt = false;
+    saveClientConfig();
+  }
 
   startingTimedClimatisation = true;
 
@@ -802,9 +815,12 @@ async function checkTimedCharging() {
     return;
   }
 
-  ClientConfig.chargingAt = false;    
+  if(ClientConfig.chargingAt) {
+    ClientConfig.chargingAt = false;
+    saveClientConfig();
+  }
 
-  console.log('Starting scheduled charging '+timedChargingRetry);
+  console.log(`Starting scheduled charging retry[secs]:${timedChargingRetry} state=${state}`);
 
   startingTimedCharging = true;
 

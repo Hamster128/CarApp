@@ -204,6 +204,10 @@
               <td class="symbol_td"><span id="txtClimate"></span></td>
             </tr>
             <tr><td style="height: 200px;"></td></tr>
+            <tr>
+              <td></td>
+              <td class="symbol_td" onClick="clickPosition()"><i id="symPosition" class="fa-solid fa-globe" style="font-size: 110px;"></i></td>
+            </tr>
           </table>
         </div>
 
@@ -809,7 +813,20 @@
             // ---------------------------------------- CLIMATISATION TEXT ----------------------------------------
             updateClimatisationText();
 
+            // ---------------------------------------- POSITION --------------------------------------------------
+            if(data.parkingposition.lat) {
+              $('#symPosition').show();
+            } else {
+              $('#symPosition').hide();
+            }
+
           });
+
+          // -----------------------------------------------------------------------------------------------
+          function clickPosition() {
+            let wnd = window.open(`https://www.google.at/maps/place/${actData.parkingposition.lat},${actData.parkingposition.lon}`);
+            wnd.close();
+          }
 
           // -----------------------------------------------------------------------------------------------
           function updateClimatisationText() {

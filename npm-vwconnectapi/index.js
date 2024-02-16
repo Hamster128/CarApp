@@ -2168,6 +2168,37 @@ class VwWeConnect {
             );
         });
 
+        await new Promise((resolve, reject) => {
+            request.get(
+                {
+                    url: "https://ola.prod.code.seat.cloud.vwgroup.com/v1/vehicles/" + vin + "/parkingposition",
+
+                    headers: {
+                        accept: "*/*",
+                        "user-agent": this.userAgent,
+                        "accept-language": "de-de",
+                        authorization: "Bearer " + this.config.atoken,
+                    },
+                    followAllRedirects: true,
+                    gzip: true,
+                    json: true,
+                },
+                (err, resp, body) => {
+                    if (err || (resp && resp.statusCode >= 400)) {
+                        this.log.error('get parkingposition failed!');
+                        err && this.log.error(err);
+                        resp && this.log.error(resp.statusCode.toString() + ' ' + JSON.stringify(resp.body));
+                        body && this.log.error(JSON.stringify(body));
+                        return reject();
+                    }
+                    this.log.info('get parkingposition: ' /*+ JSON.stringify(body)*/);
+
+                    vehicle.parkingposition = body;
+                    resolve();
+                }
+            );
+        });
+
         if(this.onNewData) {
             this.onNewData();
         }
