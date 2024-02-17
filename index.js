@@ -19,7 +19,7 @@ let server;
 let activeCommands = {};
 
 let updateTimeout;
-let lastStamp, lastStampStored, prevStamp, lastPollingInterval;
+let lastStamp, lastLogData, prevStamp, lastPollingInterval;
 let retrySecs = 10;
 let CarOfflineMsgSent = true;
 let timedClimatisationRetry = 0, timedChargingRetry = 0;
@@ -255,7 +255,7 @@ function startServer() {
     socket.on('command', async function(data) {
       await doCommand(data);
       sendCurrentData(socket);
-      storeData(true);
+      storeData();
     });
 
     //-------------------------------------------------------------------------------------------
@@ -321,7 +321,7 @@ function sendProblem2clients(problem) {
 }
 
 //-------------------------------------------------------------------------------------------
-function storeData(force) {
+function storeData() {
 
   if(!Config.store_data) {
     return;
@@ -332,16 +332,9 @@ function storeData(force) {
   let carStamp = moment.utc(data.charging.status.battery.carCapturedTimestamp);
   let stamp = carStamp.unix();
 
-  if(stamp == lastStampStored && !force) {
-    return;
-  }
-
-  lastStampStored = stamp;
-
   let now = moment();
 
-  let logData = now.format('YYYY-MM-DD HH:mm:ss')
-    + ';' + carStamp.format('YYYY-MM-DD HH:mm:ss')
+  let logData = ';' + carStamp.format('YYYY-MM-DD HH:mm:ss')
     + ';' + data.charging.status.battery.currentSOC_pct
     + ';' + data.charging.status.charging.chargeType
     + ';' + data.charging.status.charging.chargePower_kW.toFixed(1).replace('.', ',')
@@ -362,6 +355,14 @@ function storeData(force) {
     + ';' + data.parkingposition.lon
     + '\n';
   
+  if(logData === lastLogData) {
+    return;
+  }
+
+  lastLogData = logData;
+  
+  logData = now.format('YYYY-MM-DD HH:mm:ss') + logData;
+
   if (!fs.existsSync('data')) {
     fs.mkdirSync('data')
   }
@@ -466,11 +467,16 @@ async function onNewData() {
     }
   }
 
-//  fs.writeFileSync('data/dump.json', JSON.stringify(vwConn.vehicles[0], null, 2), 'utf8');
 
-  vwConn.vehicles[0] = _.extend(desired, vwConn.vehicles[0]);
+//  let dumpstamp = moment().format('YYYYMMDDHHmmss');
+//  fs.writeFileSync(`data/dump${dumpstamp}.json`, JSON.stringify(vwConn.vehicles[0], null, 2), 'utf8');
 
-//  fs.writeFileSync('data/dump_ext.json', JSON.stringify(vwConn.vehicles[0], null, 2), 'utf8');
+  if(!vwConn.vehicles[0].charging) {vwConn.vehicles[0].charging = desired.charging}
+  if(!vwConn.vehicles[0].climatisation) {vwConn.vehicles[0].climatisation = desired.climatisation}
+  if(!vwConn.vehicles[0].services) {vwConn.vehicles[0].services = desired.services}
+  if(!vwConn.vehicles[0].climatisation_settings) {vwConn.vehicles[0].climatisation_settings = desired.climatisation_settings}
+  if(!vwConn.vehicles[0].status) {vwConn.vehicles[0].status = desired.status}
+  if(!vwConn.vehicles[0].parkingposition) {vwConn.vehicles[0].parkingposition = desired.parkingposition}
 
   // sometimes the target temperature is not valid
   if(vwConn.vehicles[0].climatisation_settings.settings.targetTemperature_K - 273.15 < 18.0) {
