@@ -463,10 +463,18 @@ async function onNewData() {
     parkingposition: {
       lat: 0,
       lon: 0
+    },
+    parkingposition2: {
+      lat: 0,
+      lon: 0
     }
   }
 
-  vwConn.vehicles[0] = _.extend(vwConn.vehicles[0], desired);
+//  fs.writeFileSync('data/dump.json', JSON.stringify(vwConn.vehicles[0], null, 2), 'utf8');
+
+  vwConn.vehicles[0] = _.extend(desired, vwConn.vehicles[0]);
+
+//  fs.writeFileSync('data/dump_ext.json', JSON.stringify(vwConn.vehicles[0], null, 2), 'utf8');
 
   // sometimes the target temperature is not valid
   if(vwConn.vehicles[0].climatisation_settings.settings.targetTemperature_K - 273.15 < 18.0) {
@@ -869,7 +877,7 @@ async function main() {
     console.log('ready');
 
   } catch(e) {
-    console.error('startup failed!');
+    console.error('startup failed!', e);
 
     console.log(`retry in ${retrySecs} secs...`);
     setTimeout(main, retrySecs * 1000);
