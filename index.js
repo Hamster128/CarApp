@@ -463,10 +463,6 @@ async function onNewData() {
     parkingposition: {
       lat: 0,
       lon: 0
-    },
-    parkingposition2: {
-      lat: 0,
-      lon: 0
     }
   }
 
