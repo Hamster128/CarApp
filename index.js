@@ -353,6 +353,11 @@ function storeData() {
     + ';' + data.status.measurements.mileageKm
     + ';' + data.parkingposition.lat
     + ';' + data.parkingposition.lon
+    + ';' + data.status2.locked + ';' + data.status2.lights + ';' + data.status2.engine + ';' + data.status2.hood.open
+    + ';' + data.status2.trunk.open + ';' + data.status2.trunk.locked
+    + ';' + data.status2.doors.frontLeft.open + ';' + data.status2.doors.frontLeft.locked
+    + ';' + data.status2.doors.frontRight.open + ';' + data.status2.doors.frontRight.locked
+    + ';' + data.status2.windows.frontLeft + ';' + data.status2.windows.frontRight + ';' + data.status2.windows.rearLeft + ';' + data.status2.windows.rearRight
     + '\n';
   
   if(logData === lastLogData) {
@@ -360,7 +365,7 @@ function storeData() {
   }
 
   lastLogData = logData;
-  
+
   logData = now.format('YYYY-MM-DD HH:mm:ss') + logData;
 
   if (!fs.existsSync('data')) {
@@ -370,7 +375,9 @@ function storeData() {
   let filename = 'data/' + now.format('YYYY-MM') + '.csv';
 
   if(!fs.existsSync(filename)) {
-    logData = 'stamp;stamp car;soc;charging;kW;connected;plug locked;external power;charging cmd;AC current;target soc;climatisation;remaining mins;temp;climatisation cmd;window heating front;window heating back;km;lat;lon\n' + logData;
+    logData = 'stamp;stamp car;soc;charging;kW;connected;plug locked;external power;charging cmd;AC current;target soc;climatisation;remaining mins;temp;climatisation cmd;window heating front;window heating back;km;lat;lon' 
+      + `locked;lights;engine;hood;trunk_open;trunk_locked;door_fl_open;door_fl_locked;door_fr_open;door_fr_locked;window_fl;window_fr;window_rl;window_rr\n`
+      + logData;
   }
 
   fs.appendFile(filename, logData, err => {
@@ -464,6 +471,34 @@ async function onNewData() {
     parkingposition: {
       lat: 0,
       lon: 0
+    },
+    status2: {
+      "locked": undefined,
+      "lights": undefined,
+      "engine": undefined,
+      "hood": {
+        "open": undefined
+      },
+      "trunk": {
+        "open": undefined,
+        "locked": undefined
+      },
+      "doors": {
+        "frontLeft": {
+          "open": undefined,
+          "locked": undefined
+        },
+        "frontRight": {
+          "open": undefined,
+          "locked": undefined,
+        }
+      },
+      "windows": {
+        "frontLeft": undefined,
+        "frontRight": undefined,
+        "rearLeft": undefined,
+        "rearRight": undefined
+      }
     }
   }
 

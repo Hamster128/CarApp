@@ -2199,6 +2199,37 @@ class VwWeConnect {
             );
         });
 
+        await new Promise((resolve, reject) => {
+            request.get(
+                {
+                    url: "https://ola.prod.code.seat.cloud.vwgroup.com/v2/vehicles/" + vin + "/status",
+
+                    headers: {
+                        accept: "*/*",
+                        "user-agent": this.userAgent,
+                        "accept-language": "de-de",
+                        authorization: "Bearer " + this.config.atoken,
+                    },
+                    followAllRedirects: true,
+                    gzip: true,
+                    json: true,
+                },
+                (err, resp, body) => {
+                    if (err || (resp && resp.statusCode >= 400)) {
+                        this.log.error('get status2 failed!');
+                        err && this.log.error(err);
+                        resp && this.log.error(resp.statusCode.toString() + ' ' + JSON.stringify(resp.body));
+                        body && this.log.error(JSON.stringify(body));
+                        return reject();
+                    }
+                    this.log.info('get status2: ' /*+ JSON.stringify(body)*/);
+
+                    vehicle.status2 = body;
+                    resolve();
+                }
+            );
+        });
+
         if(this.onNewData) {
             this.onNewData();
         }
