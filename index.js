@@ -426,6 +426,13 @@ async function onNewData() {
         climatisationStatus: {
           climatisationState: "unknown",
           carCapturedTimestamp: 0
+        },
+        windowHeatingStatus: {
+          windowHeatingStatus: [{
+            windowHeatingState: false
+          }, {
+            windowHeatingState: false
+          }]
         }
       }
     },
@@ -459,7 +466,7 @@ async function onNewData() {
     }
   }
 
-  vwConn.vehicles[0] = _.extend(desired, vwConn.vehicles[0]);
+  vwConn.vehicles[0] = _.extend(vwConn.vehicles[0], desired);
 
   // sometimes the target temperature is not valid
   if(vwConn.vehicles[0].climatisation_settings.settings.targetTemperature_K - 273.15 < 18.0) {
