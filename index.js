@@ -334,8 +334,8 @@ function storeData() {
 
   let now = moment();
 
-  let logData = ';' + carStamp.format('YYYY-MM-DD HH:mm:ss')
-    + ';' + data.charging.status.battery.currentSOC_pct
+  let logData = 
+      ';' + data.charging.status.battery.currentSOC_pct
     + ';' + data.charging.status.charging.chargeType
     + ';' + data.charging.status.charging.chargePower_kW.toFixed(1).replace('.', ',')
     + ';' + data.charging.status.plug.plugConnectionState
@@ -366,7 +366,7 @@ function storeData() {
 
   lastLogData = logData;
 
-  logData = now.format('YYYY-MM-DD HH:mm:ss') + logData;
+  logData = now.format('YYYY-MM-DD HH:mm:ss') + ';' + carStamp.format('YYYY-MM-DD HH:mm:ss') + logData;
 
   if (!fs.existsSync('data')) {
     fs.mkdirSync('data')
@@ -465,7 +465,7 @@ async function onNewData() {
         }
       },
       measurements: {
-        mileageKm: 0
+        mileageKm: undefined
       }
     },
     parkingposition: {
@@ -511,6 +511,7 @@ async function onNewData() {
   if(!vwConn.vehicles[0].services) {vwConn.vehicles[0].services = desired.services}
   if(!vwConn.vehicles[0].climatisation_settings) {vwConn.vehicles[0].climatisation_settings = desired.climatisation_settings}
   if(!vwConn.vehicles[0].status) {vwConn.vehicles[0].status = desired.status}
+  if(!vwConn.vehicles[0].status.measurements) {vwConn.vehicles[0].status.measurements = desired.status.measurements}
   if(!vwConn.vehicles[0].parkingposition) {vwConn.vehicles[0].parkingposition = desired.parkingposition}
 
   // sometimes the target temperature is not valid
