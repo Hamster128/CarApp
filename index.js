@@ -109,12 +109,19 @@ async function sendData2abrp() {
     "car_model":"cupra:born:21:58:meb"  // https://api.iternio.com/1/tlm/get_carmodels_list?
   };
 
-  if(data.parkingposition.lat) {
+  if(data.parkingposition?.lat) {
     doc.lat = data.parkingposition.lat;
     doc.lon = data.parkingposition.lon;
     doc.speed = 0;
+  } 
+
+  if(data.status2?.engine) {
+    doc.is_parked = data.status2.engine == "off";
   }
 
+  if(data.status?.measurements?.mileageKm) {
+    doc.odometer = data.status.measurements.mileageKm;
+  }
 
   doc = JSON.stringify(doc);
 
