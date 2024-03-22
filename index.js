@@ -104,6 +104,7 @@ async function sendData2abrp() {
   let doc = {
     "utc": stamp,
     "soc": data.charging.status.battery.currentSOC_pct,
+    "est_battery_range": data.charging.status.battery.cruisingRangeElectric_km,
     "is_charging":  data.charging.status.charging.chargePower_kW ? 1 : 0,
     "power": data.charging.status.charging.chargePower_kW,
     "car_model":"cupra:born:21:58:meb"  // https://api.iternio.com/1/tlm/get_carmodels_list?
