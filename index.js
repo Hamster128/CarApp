@@ -100,6 +100,7 @@ async function sendData2abrp() {
   prevStamp = lastStamp;
   lastStamp = stamp;
 
+  // https://documenter.getpostman.com/view/7396339/SWTK5a8w#fdb20525-51da-4195-8138-54deabe907d5
   let doc = {
     "utc": stamp,
     "soc": data.charging.status.battery.currentSOC_pct,
@@ -107,6 +108,13 @@ async function sendData2abrp() {
     "power": data.charging.status.charging.chargePower_kW,
     "car_model":"cupra:born:21:58:meb"  // https://api.iternio.com/1/tlm/get_carmodels_list?
   };
+
+  if(data.parkingposition.lat) {
+    doc.lat = data.parkingposition.lat;
+    doc.lon = data.parkingposition.lon;
+    doc.speed = 0;
+  }
+
 
   doc = JSON.stringify(doc);
 
@@ -274,6 +282,8 @@ function startServer() {
     //-------------------------------------------------------------------------------------------
     socket.on('log', async function(text) {
       console.log(`CLIENT: ${text}`);
+
+      fs.writeFileSync(`data/dump${moment().format('YYYYMMDDHHmmss')}.json`, JSON.stringify(vwConn.vehicles[0], null, 2), 'utf8');
     });
 
     //-------------------------------------------------------------------------------------------
@@ -412,6 +422,8 @@ async function onNewData() {
     startServer();
   }
 
+//  fs.writeFileSync(`data/dump${moment().format('YYYYMMDDHHmmss')}.json`, JSON.stringify(vwConn.vehicles[0], null, 2), 'utf8');
+
   // repair data from server
   let desired = {
     charging: {
@@ -502,9 +514,6 @@ async function onNewData() {
     }
   }
 
-
-//  let dumpstamp = moment().format('YYYYMMDDHHmmss');
-//  fs.writeFileSync(`data/dump${dumpstamp}.json`, JSON.stringify(vwConn.vehicles[0], null, 2), 'utf8');
 
   if(!vwConn.vehicles[0].charging) {vwConn.vehicles[0].charging = desired.charging}
   if(!vwConn.vehicles[0].climatisation) {vwConn.vehicles[0].climatisation = desired.climatisation}
