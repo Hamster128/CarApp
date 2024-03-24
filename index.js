@@ -110,6 +110,10 @@ async function sendData2abrp() {
     "car_model":"cupra:born:21:58:meb"  // https://api.iternio.com/1/tlm/get_carmodels_list?
   };
 
+  if(data.charging?.status?.charging?.chargePower_kW) {
+    doc.is_dcfc = data.charging.status.charging.chargeType == "dc";
+  }
+
   if(data.parkingposition?.lat) {
     doc.lat = data.parkingposition.lat;
     doc.lon = data.parkingposition.lon;
@@ -291,6 +295,12 @@ function startServer() {
     socket.on('log', async function(text) {
       console.log(`CLIENT: ${text}`);
 
+      fs.writeFileSync(`data/dump${moment().format('YYYYMMDDHHmmss')}.json`, JSON.stringify(vwConn.vehicles[0], null, 2), 'utf8');
+    });
+
+    //-------------------------------------------------------------------------------------------
+    socket.on('dump', async function(text) {
+      console.log(`dump`);
       fs.writeFileSync(`data/dump${moment().format('YYYYMMDDHHmmss')}.json`, JSON.stringify(vwConn.vehicles[0], null, 2), 'utf8');
     });
 
