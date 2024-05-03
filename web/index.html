@@ -219,7 +219,10 @@
             <tr>
               <td style="text-align:right; font-size:100px;" onClick="closeSettings();"><i class="fa-regular fa-circle-xmark"></i></td>
             </tr>
-            <tr><td style="height: 100px;"></td></tr>
+            <tr>
+              <td>ODO: <span id="spanODO"></span> km</td>
+            </tr>
+            <tr><td style="height: 80px;"></td></tr>
             <tr>
               <td>
                 Stop charging remote at:&nbsp; <span id="soc_applimit"></span><br>
@@ -656,6 +659,8 @@
             $('#soc_limit_clr').removeClass('green');
             $('#limit_ac_label').removeClass('green');
             $('#auto_unlock_label').removeClass('green');
+
+            $('#spanODO').html(parseFloat(data.mileage.mileageKm).toLocaleString());
 
             if(data.activeCommands['charging_settings']) {
 

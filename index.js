@@ -17,9 +17,10 @@ let vwConn;
 let clients = {};
 let server;
 let activeCommands = {};
+let rawState, currentState;
 
 let updateTimeout;
-let lastStamp, lastLogData, prevStamp, lastPollingInterval;
+let lastABRPdoc, lastLogData, lastPollingInterval;
 let retrySecs = 10;
 let CarOfflineMsgSent = true;
 let timedClimatisationRetry = 0, timedChargingRetry = 0;
@@ -47,12 +48,11 @@ let ClientConfig = {
 //-------------------------------------------------------------------------------------------
 function sendCurrentData(socket, newData) {
 
-  vwConn.vehicles[0].activeCommands = activeCommands
-  ;
-  vwConn.vehicles[0].Config = ClientConfig;
-  vwConn.vehicles[0].newData = newData;
+  currentState.activeCommands = activeCommands;
+  currentState.Config = ClientConfig;
+  currentState.newData = newData;
   
-  socket.emit('data', vwConn.vehicles[0]);
+  socket.emit('data', currentState);
 }
 
 //-------------------------------------------------------------------------------------------
@@ -67,7 +67,7 @@ function cleanActiveCommands() {
     if(seconds >= Config.command_timeout_secs) {
 
       if(key == 'climatisation' && command.state == "start" && Config.telegram_failed_climatisation) {
-        let climState = vwConn.vehicles[0].climatisation.data.climatisationStatus.climatisationState;
+        let climState = currentState.climatisation.data.climatisationStatus.climatisationState;
 
         if(climState == "off") {
           sendTelegram(`Climatisation failed!`);
@@ -87,18 +87,9 @@ async function sendData2abrp() {
     return;
   }
 
-  let data = vwConn.vehicles[0];
+  let data = currentState;
 
   let stamp = moment.utc(data.charging.status.battery.carCapturedTimestamp).unix();
-
-  if(stamp == lastStamp) {
-    return;
-  }
-
-  console.log('sendData2abrp...');
-
-  prevStamp = lastStamp;
-  lastStamp = stamp;
 
   // https://documenter.getpostman.com/view/7396339/SWTK5a8w#fdb20525-51da-4195-8138-54deabe907d5
   let doc = {
@@ -124,20 +115,24 @@ async function sendData2abrp() {
     doc.is_parked = data.status2.engine == "off";
   }
 
-  if(data.status?.measurements?.mileageKm) {
-    doc.odometer = data.status.measurements.mileageKm;
+  if(data.mileage?.mileageKm) {
+    doc.odometer = data.mileage.mileageKm;
   }
 
   doc = JSON.stringify(doc);
+
+  if(doc == lastABRPdoc) {
+    return;
+  }
 
   let url = `https://api.iternio.com/1/tlm/send?token=${Config.abrp_user_token}&api_key=${Config.abrp_api_key}&tlm=${encodeURIComponent(doc)}`;
 
   try {
     let res = await axios.get(url);
+    lastABRPdoc = doc;
     console.log(`sendData2abrp ${doc} ${JSON.stringify(res.data)}`);
   } catch(e) {
     console.log(`Error sending 2 abrp ${doc} ${e}`);
-    lastStamp = prevStamp;
   }
 
 }
@@ -153,7 +148,7 @@ function doCommand(data) {
 
     doCommandPromise = doCommandPromise.then(
 
-      vwConn.setSeatCupraStatus(vwConn.vehicles[0].vin, data.action, data.state, data.body)
+      vwConn.setSeatCupraStatus(currentState.vin, data.action, data.state, data.body)
 
     ).then(()=>{
 
@@ -255,7 +250,7 @@ function startServer() {
       return;
     }
 
-    res.send(vwConn.vehicles[0]);
+    res.send(currentState);
   });
 
   //-------------------------------------------------------------------------------------------
@@ -295,13 +290,15 @@ function startServer() {
     socket.on('log', async function(text) {
       console.log(`CLIENT: ${text}`);
 
-      fs.writeFileSync(`data/dump${moment().format('YYYYMMDDHHmmss')}.json`, JSON.stringify(vwConn.vehicles[0], null, 2), 'utf8');
+      fs.writeFileSync(`data/dump${moment().format('YYYYMMDDHHmmss')}_c.json`, JSON.stringify(currentState, null, 2), 'utf8');
+      fs.writeFileSync(`data/dump${moment().format('YYYYMMDDHHmmss')}_r.json`, JSON.stringify(rawState, null, 2), 'utf8');
     });
 
     //-------------------------------------------------------------------------------------------
     socket.on('dump', async function(text) {
       console.log(`dump`);
-      fs.writeFileSync(`data/dump${moment().format('YYYYMMDDHHmmss')}.json`, JSON.stringify(vwConn.vehicles[0], null, 2), 'utf8');
+      fs.writeFileSync(`data/dump${moment().format('YYYYMMDDHHmmss')}_c.json`, JSON.stringify(currentState, null, 2), 'utf8');
+      fs.writeFileSync(`data/dump${moment().format('YYYYMMDDHHmmss')}_r.json`, JSON.stringify(rawState, null, 2), 'utf8');
     });
 
     //-------------------------------------------------------------------------------------------
@@ -355,7 +352,7 @@ function storeData() {
     return;
   }
 
-  let data = vwConn.vehicles[0];
+  let data = currentState;
 
   let carStamp = moment.utc(data.charging.status.battery.carCapturedTimestamp);
   let stamp = carStamp.unix();
@@ -378,7 +375,7 @@ function storeData() {
     + ';' + (activeCommands['climatisation'] ? activeCommands['climatisation'].state : '')
     + ';' + data.climatisation.data.windowHeatingStatus.windowHeatingStatus[0].windowHeatingState
     + ';' + data.climatisation.data.windowHeatingStatus.windowHeatingStatus[1].windowHeatingState
-    + ';' + data.status.measurements.mileageKm
+    + ';' + data.mileage.mileageKm
     + ';' + data.parkingposition.lat
     + ';' + data.parkingposition.lon
     + ';' + data.status2.locked + ';' + data.status2.lights + ';' + data.status2.engine + ';' + data.status2.hood.open
@@ -418,7 +415,7 @@ function storeData() {
 
 function chargingStopMessage(msg, telegram) {
 
-  let chargedPercent = maxKw ? vwConn.vehicles[0].charging.status.battery.currentSOC_pct - startingPercent : 0;
+  let chargedPercent = maxKw ? currentState.charging.status.battery.currentSOC_pct - startingPercent : 0;
   let chargedkWh = chargedPercent ? parseFloat(Config.battery_kwh) * chargedPercent / 100 : 0;
   let hours = chargingStart ? moment().diff(chargingStart, 'h', true) : 0;
   let avgkW = hours ? chargedkWh / hours : 0;
@@ -426,7 +423,7 @@ function chargingStopMessage(msg, telegram) {
   console.log(`${msg}, charged: ${chargedPercent} %, ${chargedkWh} kWh, max: ${maxKw} kW, avg: ${avgkW} kW`);
 
   if(Config.telegram_external_power_errors) {
-    sendTelegram(`${msg}, charged: ${startingPercent}-${vwConn.vehicles[0].charging.status.battery.currentSOC_pct}%, ${chargedkWh.toFixed(1)} kWh, max: ${maxKw.toFixed(1)}kW, avg: ${avgkW.toFixed(1)} kW`);
+    sendTelegram(`${msg}, charged: ${startingPercent}-${currentState.charging.status.battery.currentSOC_pct}%, ${chargedkWh.toFixed(1)} kWh, max: ${maxKw.toFixed(1)}kW, avg: ${avgkW.toFixed(1)} kW`);
   }
 
 }
@@ -440,7 +437,7 @@ async function onNewData() {
     startServer();
   }
 
-//  fs.writeFileSync(`data/dump${moment().format('YYYYMMDDHHmmss')}.json`, JSON.stringify(vwConn.vehicles[0], null, 2), 'utf8');
+//  fs.writeFileSync(`data/dump${moment().format('YYYYMMDDHHmmss')}.json`, JSON.stringify(currentState, null, 2), 'utf8');
 
   // repair data from server
   let desired = {
@@ -493,9 +490,6 @@ async function onNewData() {
           remainingTime: 0,
           targetPct: 0
         }
-      },
-      measurements: {
-        mileageKm: undefined
       }
     },
     parkingposition: {
@@ -503,49 +497,54 @@ async function onNewData() {
       lon: 0
     },
     status2: {
-      "locked": undefined,
-      "lights": undefined,
-      "engine": undefined,
+      "locked": null,
+      "lights": null,
+      "engine": null,
       "hood": {
-        "open": undefined
+        "open": null
       },
       "trunk": {
-        "open": undefined,
-        "locked": undefined
+        "open": null,
+        "locked": null
       },
       "doors": {
         "frontLeft": {
-          "open": undefined,
-          "locked": undefined
+          "open": null,
+          "locked": null
         },
         "frontRight": {
-          "open": undefined,
-          "locked": undefined,
+          "open": null,
+          "locked": null,
         }
       },
       "windows": {
-        "frontLeft": undefined,
-        "frontRight": undefined,
-        "rearLeft": undefined,
-        "rearRight": undefined
+        "frontLeft": null,
+        "frontRight": null,
+        "rearLeft": null,
+        "rearRight": null
       }
+    },
+    mileage: {
+      mileageKm: null
     }
   }
 
+  currentState = JSON.parse(JSON.stringify(vwConn.vehicles[0]));
+  rawState     = JSON.parse(JSON.stringify(vwConn.vehicles[0]));
 
-  if(!vwConn.vehicles[0].charging) {vwConn.vehicles[0].charging = desired.charging}
-  if(!vwConn.vehicles[0].climatisation) {vwConn.vehicles[0].climatisation = desired.climatisation}
-  if(!vwConn.vehicles[0].services) {vwConn.vehicles[0].services = desired.services}
-  if(!vwConn.vehicles[0].climatisation_settings) {vwConn.vehicles[0].climatisation_settings = desired.climatisation_settings}
-  if(!vwConn.vehicles[0].status) {vwConn.vehicles[0].status = desired.status}
-  if(!vwConn.vehicles[0].status.measurements) {vwConn.vehicles[0].status.measurements = desired.status.measurements}
-  if(!vwConn.vehicles[0].parkingposition) {vwConn.vehicles[0].parkingposition = desired.parkingposition}
+  if(!currentState.charging) {currentState.charging = desired.charging}
+  if(!currentState.climatisation) {currentState.climatisation = desired.climatisation}
+  if(!currentState.services) {currentState.services = desired.services}
+  if(!currentState.climatisation_settings) {currentState.climatisation_settings = desired.climatisation_settings}
+  if(!currentState.status) {currentState.status = desired.status}
+  if(!currentState.parkingposition) {currentState.parkingposition = desired.parkingposition}
+  if(!currentState.mileage) {currentState.mileage = desired.mileage}
 
   // sometimes the target temperature is not valid
-  if(vwConn.vehicles[0].climatisation_settings.settings.targetTemperature_K - 273.15 < 18.0) {
-    vwConn.vehicles[0].climatisation_settings.settings.targetTemperature_K = ClientConfig.lastTargetTemp_K;
+  if(currentState.climatisation_settings.settings.targetTemperature_K - 273.15 < 18.0) {
+    currentState.climatisation_settings.settings.targetTemperature_K = ClientConfig.lastTargetTemp_K;
   } else {
-    ClientConfig.lastTargetTemp_K = vwConn.vehicles[0].climatisation_settings.settings.targetTemperature_K;
+    ClientConfig.lastTargetTemp_K = currentState.climatisation_settings.settings.targetTemperature_K;
   }
 
   // send data to clients
@@ -555,9 +554,9 @@ async function onNewData() {
   }
   
   // check and send charging notifications
-  if(vwConn.vehicles[0].charging.status.plug.plugConnectionState == 'connected') {
+  if(currentState.charging.status.plug.plugConnectionState == 'connected') {
   
-    if(vwConn.vehicles[0].charging.status.plug.externalPower == 'unavailable') {
+    if(currentState.charging.status.plug.externalPower == 'unavailable') {
 
       if(chargingState != -1) {
 
@@ -569,7 +568,7 @@ async function onNewData() {
       }
     } else {
 
-      let kw = vwConn.vehicles[0].charging.status.charging.chargePower_kW;
+      let kw = currentState.charging.status.charging.chargePower_kW;
 
       if(kw) {
 
@@ -577,8 +576,8 @@ async function onNewData() {
 
           chargingState = 2;
           maxKw = kw;
-          startingPercent = vwConn.vehicles[0].charging.status.battery.currentSOC_pct;
-          chargingStart = moment.utc(vwConn.vehicles[0].charging.status.battery.carCapturedTimestamp);
+          startingPercent = currentState.charging.status.battery.currentSOC_pct;
+          chargingStart = moment.utc(currentState.charging.status.battery.carCapturedTimestamp);
       
           console.log(`Charging started ${kw} kW, ${chargingStart}`);
         }
@@ -619,11 +618,11 @@ async function onNewData() {
   }
 
   // keep cimate on
-  let stamp = moment.utc(vwConn.vehicles[0].climatisation.data.climatisationStatus.carCapturedTimestamp);
+  let stamp = moment.utc(currentState.climatisation.data.climatisationStatus.carCapturedTimestamp);
   let age = moment().diff(stamp, 'minutes');
 
-  let remaining = Math.max(0, vwConn.vehicles[0].climatisation.data.climatisationStatus.remainingClimatisationTime_min - age);
-  let climState = vwConn.vehicles[0].climatisation.data.climatisationStatus.climatisationState;
+  let remaining = Math.max(0, currentState.climatisation.data.climatisationStatus.remainingClimatisationTime_min - age);
+  let climState = currentState.climatisation.data.climatisationStatus.climatisationState;
 
   if(remaining || climState != 'off') {
 
@@ -637,9 +636,9 @@ async function onNewData() {
 
     } else if(ClientConfig.climatisationExtend) {
 
-      if(vwConn.vehicles[0].charging.status.battery.currentSOC_pct <= 20) {
+      if(currentState.charging.status.battery.currentSOC_pct <= 20) {
 
-        console.log(`climatisation extension stopped, SOC ${vwConn.vehicles[0].charging.status.battery.currentSOC_pct}%`);
+        console.log(`climatisation extension stopped, SOC ${currentState.charging.status.battery.currentSOC_pct}%`);
 
         ClientConfig.climatisationExtend = false;
         saveClientConfig();
@@ -658,11 +657,11 @@ async function onNewData() {
 
   // check charge limit
   if(ClientConfig.chargeLimit < 100 && 
-     vwConn.vehicles[0].charging.status.battery.currentSOC_pct >= ClientConfig.chargeLimit && 
-     vwConn.vehicles[0].charging.status.charging.chargePower_kW > 0) {
+     currentState.charging.status.battery.currentSOC_pct >= ClientConfig.chargeLimit && 
+     currentState.charging.status.charging.chargePower_kW > 0) {
 
     if(!activeCommands['charging'] || activeCommands['charging'].state != 'stop') {
-      console.log('charging limit reached, stopping charging ' + vwConn.vehicles[0].charging.status.battery.currentSOC_pct + '>=' + ClientConfig.chargeLimit);
+      console.log('charging limit reached, stopping charging ' + currentState.charging.status.battery.currentSOC_pct + '>=' + ClientConfig.chargeLimit);
 
       if(Config['charing_limit_reached_url']) {
         try {
@@ -684,7 +683,7 @@ async function onNewData() {
   sendData2abrp();
   storeData();
 
-//  fs.writeFileSync('data/dump.json', JSON.stringify(vwConn.vehicles[0], null, 2), 'utf8');
+//  fs.writeFileSync('data/dump.json', JSON.stringify(currentState, null, 2), 'utf8');
 
   if(updateTimeout) {
     return;
@@ -693,9 +692,9 @@ async function onNewData() {
   let secs = Config.refresh_secs;
 
   // slow polling when not needed
-  if(!ClientConfig.climatisationExtend && !Object.keys(clients).length && !Object.keys(activeCommands).length && (ClientConfig.chargeLimit == 100 || vwConn.vehicles[0].charging.status.charging.chargePower_kW == 0) ) {
+  if(!ClientConfig.climatisationExtend && !Object.keys(clients).length && !Object.keys(activeCommands).length && (ClientConfig.chargeLimit == 100 || currentState.charging.status.charging.chargePower_kW == 0) ) {
 
-    let data = vwConn.vehicles[0];
+    let data = currentState;
     let stamp = moment.utc(data.charging.status.battery.carCapturedTimestamp);
     let age = moment().diff(stamp, 's');
     
@@ -837,7 +836,7 @@ async function checkTimedClimatisation() {
     return;
   }
 
-  let state = vwConn.vehicles[0].climatisation.data.climatisationStatus.climatisationState;
+  let state = currentState.climatisation.data.climatisationStatus.climatisationState;
 
   if(state != 'off' && state != 'invalid') {
     return;
@@ -889,7 +888,7 @@ async function checkTimedCharging() {
     return;
   }
 
-  let state = vwConn.vehicles[0].charging.status.charging.chargePower_kW;
+  let state = currentState.charging.status.charging.chargePower_kW;
 
   if(state) {
     return;
@@ -1026,7 +1025,7 @@ main();
       "charging": {
         "carCapturedTimestamp": "2022-08-25T10:04:44Z",
         "chargingState": "readyForCharging",
-        "chargeType": "invalid",
+        "chargeType": "invalid",  // "ac", "dc"
         "chargeMode": "manual",
         "chargingSettings": "default",
         "remainingChargingTimeToComplete_min": 0,
