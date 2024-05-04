@@ -401,7 +401,7 @@ function storeData() {
 
   if(!fs.existsSync(filename)) {
     logData = 'stamp;stamp car;soc;charging;kW;connected;plug locked;external power;charging cmd;AC current;target soc;climatisation;remaining mins;temp;climatisation cmd;window heating front;window heating back;km;lat;lon' 
-      + `locked;lights;engine;hood;trunk_open;trunk_locked;door_fl_open;door_fl_locked;door_fr_open;door_fr_locked;window_fl;window_fr;window_rl;window_rr\n`
+      + `;locked;lights;engine;hood;trunk_open;trunk_locked;door_fl_open;door_fl_locked;door_fr_open;door_fr_locked;window_fl;window_fr;window_rl;window_rr\n`
       + logData;
   }
 
@@ -529,8 +529,8 @@ async function onNewData() {
     }
   }
 
-  currentState = JSON.parse(JSON.stringify(vwConn.vehicles[0]));
-  rawState     = JSON.parse(JSON.stringify(vwConn.vehicles[0]));
+  currentState = structuredClone(vwConn.vehicles[0]);
+  rawState     = structuredClone(vwConn.vehicles[0]);
 
   if(!currentState.charging) {currentState.charging = desired.charging}
   if(!currentState.climatisation) {currentState.climatisation = desired.climatisation}
