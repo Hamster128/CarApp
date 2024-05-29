@@ -748,36 +748,7 @@
 
             }
 
-            // ---------------------------------------- CLIMATISATION SYMBOL ----------------------------------------
-            $('#symClimate').removeClass(['fa-circle-question', 'clicked', 'grey', 'green', 'red', 'blue', 'white', 'yellow']).addClass('fa-fan');
-
-            if(       data.climatisation.data.climatisationStatus.climatisationState == 'heating') {
-              $('#symClimate').addClass('red');
-            } else if(data.climatisation.data.climatisationStatus.climatisationState == 'cooling') {
-              $('#symClimate').addClass('blue');
-            } else if(data.climatisation.data.climatisationStatus.climatisationState == 'ventilation') {
-              $('#symClimate').addClass('white');
-            } else if(data.climatisation.data.climatisationStatus.climatisationState == 'off') {
-              $('#symClimate').addClass('grey');
-            } else if(data.climatisation.data.climatisationStatus.climatisationState == 'unknown') {
-              $('#symClimate').removeClass('fa-fan').addClass(['fa-circle-question', 'yellow']);
-            } else {
-              $('#symClimate').addClass('yellow');
-            }
-
-            $('#symClimate').removeClass(['clicked', 'clicked_start', 'clicked_stop']);
-
-            if(data.activeCommands['climatisation']) {
-              if(       data.activeCommands['climatisation'].state == 'start' && 
-                        data.climatisation.data.climatisationStatus.climatisationState == 'off') {
-                $('#symClimate').addClass('clicked_start');
-              } else if(data.activeCommands['climatisation'].state == 'stop' && 
-                        data.climatisation.data.climatisationStatus.climatisationState != 'off') {
-                $('#symClimate').addClass('clicked_stop');
-              }
-            }
-
-            // ---------------------------------------- CLIMATISATION SETTINGS-------------------------------------
+           // ---------------------------------------- CLIMATISATION SETTINGS-------------------------------------
             $('#climatemp').removeClass('green');
 
             if(data.activeCommands['climatisation_settings']) {
@@ -818,6 +789,36 @@
             // ---------------------------------------- CLIMATISATION TEXT ----------------------------------------
             updateClimatisationText();
 
+            // ---------------------------------------- CLIMATISATION SYMBOL ----------------------------------------
+            $('#symClimate').removeClass(['fa-circle-question', 'clicked', 'grey', 'green', 'red', 'blue', 'white', 'yellow']).addClass('fa-fan');
+
+            if(       data.climatisation.data.climatisationStatus.climatisationState == 'heating') {
+              $('#symClimate').addClass('red');
+            } else if(data.climatisation.data.climatisationStatus.climatisationState == 'cooling') {
+              $('#symClimate').addClass('blue');
+            } else if(data.climatisation.data.climatisationStatus.climatisationState == 'ventilation') {
+              $('#symClimate').addClass('white');
+            } else if(data.climatisation.data.climatisationStatus.climatisationState == 'off') {
+              $('#symClimate').addClass('grey');
+            } else if(data.climatisation.data.climatisationStatus.climatisationState == 'unknown') {
+              $('#symClimate').removeClass('fa-fan').addClass(['fa-circle-question', 'yellow']);
+            } else {
+              $('#symClimate').addClass('yellow');
+            }
+
+            $('#symClimate').removeClass(['clicked', 'clicked_start', 'clicked_stop']);
+
+            if(data.activeCommands['climatisation']) {
+              if(       data.activeCommands['climatisation'].state == 'start' && 
+                        data.climatisation.data.climatisationStatus.climatisationState == 'off') {
+                $('#symClimate').addClass('clicked_start');
+              } else if(data.activeCommands['climatisation'].state == 'stop' && 
+                        data.climatisation.data.climatisationStatus.climatisationState != 'off') {
+                $('#symClimate').addClass('clicked_stop');
+              }
+            }
+
+
             // ---------------------------------------- POSITION --------------------------------------------------
             if(data.parkingposition.lat) {
               $('#symPosition').show();
@@ -843,6 +844,14 @@
 
               let remainingMin   = Math.max(actData.climatisation.data.climatisationStatus.remainingClimatisationTime_min - age);
               let progressBarPct = actData.status.services.climatisation.progressBarPct;
+
+              if(remainingMin < 0) {
+                actData.climatisation.data.climatisationStatus.climatisationState = 'off';
+                actData.status.services.climatisation.active = false;
+                updateClimatisationText();
+                return;
+              }
+            
 
               let txt = `${remainingMin} min`;
 

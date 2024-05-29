@@ -26,6 +26,7 @@ let CarOfflineMsgSent = true;
 let timedClimatisationRetry = 0, timedChargingRetry = 0;
 let startingTimedClimatisation = false, startingTimedCharging = false;;
 let chargingState = 0, maxKw = 0, startingPercent = 0, chargingStart;
+let supressMsgTimeout;
 
 let ClientConfig = {
   chargeLimit: 100,
@@ -236,6 +237,16 @@ function startServer() {
     }
 
     if(await doCommand(data)) {
+
+      if(req.query.supressMsg == 'true') {
+        if(supressMsgTimeout) {
+          clearTimeout(supressMsgTimeout);
+        }
+        supressMsgTimeout = setTimeout(function() {
+          supressMsgTimeout = null;
+        }, 300000);
+      }
+
       res.send('+OK');
     } else {
       res.send('-ERROR');
@@ -422,7 +433,7 @@ function chargingStopMessage(msg, telegram) {
 
   console.log(`${msg}, charged: ${chargedPercent} %, ${chargedkWh} kWh, max: ${maxKw} kW, avg: ${avgkW} kW`);
 
-  if(Config.telegram_external_power_errors) {
+  if(Config.telegram_external_power_errors && !supressMsgTimeout) {
     sendTelegram(`${msg}, charged: ${startingPercent}-${currentState.charging.status.battery.currentSOC_pct}%, ${chargedkWh.toFixed(1)} kWh, max: ${maxKw.toFixed(1)}kW, avg: ${avgkW.toFixed(1)} kW`);
   }
 
@@ -709,7 +720,10 @@ async function onNewData() {
 
   if(secs != lastPollingInterval) {
 
-    if(Config.telegram_on_wakeup && lastPollingInterval == Config.slow_refresh_secs && secs == Config.drive_refresh_secs) {
+    if(Config.telegram_on_wakeup && 
+      lastPollingInterval == Config.slow_refresh_secs && 
+      secs == Config.drive_refresh_secs && 
+      currentState.charging.status.plug.plugConnectionState != 'connected') {
       sendTelegram('car woke up');
     }
 
