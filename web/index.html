@@ -222,6 +222,9 @@
             <tr>
               <td>ODO: <span id="spanODO"></span> km</td>
             </tr>
+            <tr>
+              <td>Battery: <span id="spanCycles"></span> cycles</td>
+            </tr>
             <tr><td style="height: 80px;"></td></tr>
             <tr>
               <td>
@@ -661,6 +664,7 @@
             $('#auto_unlock_label').removeClass('green');
 
             $('#spanODO').html(parseFloat(data.mileage.mileageKm).toLocaleString());
+            $('#spanCycles').html(parseFloat(data.stats.cycles).toLocaleString(undefined, {maximumFractionDigits:1}));
 
             if(data.activeCommands['charging_settings']) {
 

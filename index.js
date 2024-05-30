@@ -4,6 +4,7 @@ const express = require('express')
 const moment = require('moment')
 const axios = require('axios')
 const _  = require('underscore');
+const {parse} = require('csv-parse/sync');
 
 const api = require('./npm-vwconnectapi');
 
@@ -17,7 +18,7 @@ let vwConn;
 let clients = {};
 let server;
 let activeCommands = {};
-let rawState, currentState;
+let rawState, currentState, lastState;
 
 let updateTimeout;
 let lastABRPdoc, lastLogData, lastPollingInterval;
@@ -27,6 +28,7 @@ let timedClimatisationRetry = 0, timedChargingRetry = 0;
 let startingTimedClimatisation = false, startingTimedCharging = false;;
 let chargingState = 0, maxKw = 0, startingPercent = 0, chargingStart;
 let supressMsgTimeout;
+let stats = {cycles:0};
 
 let ClientConfig = {
   chargeLimit: 100,
@@ -47,11 +49,56 @@ let ClientConfig = {
 };
 
 //-------------------------------------------------------------------------------------------
+function readCSV(inputPath) {
+
+  let data = fs.readFileSync(inputPath);
+  let records;
+
+  records = parse(data, {
+    delimiter: ';',
+    relax_column_count: true
+  });
+
+  return records
+}
+
+//-------------------------------------------------------------------------------------------
+function loadData() {
+
+  let lastSoc = -1, cycles = 0;
+
+  let files = fs.readdirSync("data");
+  
+  for(let file of files) {
+
+    if(file.slice(-4) != '.csv') {
+      continue;
+    }
+
+    let data = readCSV(`data/${file}`);
+
+    for(let i = 1; i < data.length; i++) {
+      let line = data[i];
+      let soc = line[2];
+
+      if(lastSoc > soc) {
+        stats.cycles += (soc - lastSoc) / -100;
+      }
+
+      lastSoc = soc;
+    }
+  };
+
+  console.log(`battery cycles: ${stats.cycles}`);
+}
+
+//-------------------------------------------------------------------------------------------
 function sendCurrentData(socket, newData) {
 
   currentState.activeCommands = activeCommands;
   currentState.Config = ClientConfig;
   currentState.newData = newData;
+  currentState.stats = stats;
   
   socket.emit('data', currentState);
 }
@@ -558,6 +605,14 @@ async function onNewData() {
     ClientConfig.lastTargetTemp_K = currentState.climatisation_settings.settings.targetTemperature_K;
   }
 
+  // count stats
+  if(lastState) {
+
+    if(lastState.charging.status.battery.currentSOC_pct > currentState.charging.status.battery.currentSOC_pct) {
+      stats.cycles += (currentState.charging.status.battery.currentSOC_pct - lastState.charging.status.battery.currentSOC_pct) / -100;
+    }
+  }
+
   // send data to clients
   for(let key in clients) {
     let socket = clients[key];
@@ -627,6 +682,8 @@ async function onNewData() {
       console.log(`unplugged`);
     }
   }
+
+  lastState = currentState;
 
   // keep cimate on
   let stamp = moment.utc(currentState.climatisation.data.climatisationStatus.carCapturedTimestamp);
@@ -930,6 +987,7 @@ async function main() {
 
     loadConfig();
     loadClientConfig();
+    loadData();
 
     console.log('VwWeConnect');
 
