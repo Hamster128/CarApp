@@ -374,7 +374,7 @@
       </div>
 
       <script>
-          var socket = io('http://'+location.host);
+          var socket = io(`${location.protocol}//${location.host}`);
           var socTime;
 
           let Config = {
