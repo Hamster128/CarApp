@@ -441,6 +441,7 @@ function storeData() {
     + ';' + data.status2.doors.frontLeft.open + ';' + data.status2.doors.frontLeft.locked
     + ';' + data.status2.doors.frontRight.open + ';' + data.status2.doors.frontRight.locked
     + ';' + data.status2.windows.frontLeft + ';' + data.status2.windows.frontRight + ';' + data.status2.windows.rearLeft + ';' + data.status2.windows.rearRight
+    + ';' + data.vin
     + '\n';
   
   if(logData === lastLogData) {
@@ -459,7 +460,7 @@ function storeData() {
 
   if(!fs.existsSync(filename)) {
     logData = 'stamp;stamp car;soc;charging;kW;connected;plug locked;external power;charging cmd;AC current;target soc;climatisation;remaining mins;temp;climatisation cmd;window heating front;window heating back;km;lat;lon' 
-      + `;locked;lights;engine;hood;trunk_open;trunk_locked;door_fl_open;door_fl_locked;door_fr_open;door_fr_locked;window_fl;window_fr;window_rl;window_rr\n`
+      + `;locked;lights;engine;hood;trunk_open;trunk_locked;door_fl_open;door_fl_locked;door_fr_open;door_fr_locked;window_fl;window_fr;window_rl;window_rr;vin\n`
       + logData;
   }
 
