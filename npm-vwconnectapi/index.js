@@ -1527,7 +1527,7 @@ class VwWeConnect {
                 };
             }
             if (this.config.type === "seatcupra") {
-                url = "https://ola.prod.code.seat.cloud.vwgroup.com/v1/users/" + this.seatcupraUser + "/garage/vehicles";
+                url = `https://ola.prod.code.seat.cloud.vwgroup.com/v2/users/${this.seatcupraUser}/garage/vehicles`
                 // @ts-ignore
                 headers = {
                     accept: "application/json",
@@ -2191,7 +2191,7 @@ class VwWeConnect {
                         body && this.log.error(JSON.stringify(body));
                         return reject();
                     }
-                    this.log.info('get parkingposition: ' /*+ JSON.stringify(body)*/);
+                    this.log.info('get parkingposition: ' + JSON.stringify(body));
 
                     vehicle.parkingposition = body;
                     resolve();
@@ -2253,7 +2253,7 @@ class VwWeConnect {
                         body && this.log.error(JSON.stringify(body));
                         return reject();
                     }
-                    this.log.info('get mileage: ' /*+ JSON.stringify(body)*/);
+                    this.log.info('get mileage: ' + JSON.stringify(body));
 
                     vehicle.mileage = body;
                     resolve();
