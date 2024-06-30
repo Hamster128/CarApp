@@ -712,10 +712,19 @@ async function onNewData() {
         ClientConfig.climatisationExtend = false;
         saveClientConfig();
 
-      } else if(data.status2.engine) {
+      } else if(currentState.status2.engine == "on") {
 
         console.log(`climatisation extension suspended, engine on`);
 
+      } else if("home" in Config && 
+                Math.abs(currentState.parkingposition.lat - Config.home.lat) <= 0.002 && 
+                Math.abs(currentState.parkingposition.lon - Config.home.lon) <= 0.002) {
+
+        console.log(`climatisation extension stopped, parking postion = home`);
+
+        ClientConfig.climatisationExtend = false;
+        saveClientConfig();
+          
       } else {
 
         console.log('climatisation start extension');
