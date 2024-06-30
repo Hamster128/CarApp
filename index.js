@@ -712,6 +712,10 @@ async function onNewData() {
         ClientConfig.climatisationExtend = false;
         saveClientConfig();
 
+      } else if(data.status2.engine) {
+
+        console.log(`climatisation extension suspended, engine on`);
+
       } else {
 
         console.log('climatisation start extension');
