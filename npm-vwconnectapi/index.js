@@ -2266,11 +2266,11 @@ class VwWeConnect {
         }
     }
 
-    setSeatCupraStatus(vin, action, state, body) {
+    setSeatCupraStatus(version, vin, action, state, body) {
         return new Promise((resolve, reject) => {
 
             let opts = {
-                url: "https://ola.prod.code.seat.cloud.vwgroup.com/v1/vehicles/" + vin + "/" + action + "/requests/" + state,
+                url: `https://ola.prod.code.seat.cloud.vwgroup.com/${version ? version + '/': ''}vehicles/` + vin + "/" + action + "/requests/" + state,
                 headers: {
                     accept: "*/*",
                     "user-agent": this.userAgent,

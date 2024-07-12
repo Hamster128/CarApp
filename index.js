@@ -194,8 +194,8 @@ function doCommand(data) {
 
     doCommandPromise = doCommandPromise.then( async () => {
 
-      console.log(`doCommand ${data.action} ${data.state} ${JSON.stringify(data.body)}...`);
-      await vwConn.setSeatCupraStatus(currentState.vin, data.action, data.state, data.body)
+      console.log(`doCommand ${data.version} ${data.action} ${data.state} ${JSON.stringify(data.body)}...`);
+      await vwConn.setSeatCupraStatus(data.version, currentState.vin, data.action, data.state, data.body)
 
     }).then(()=>{
 
@@ -221,7 +221,7 @@ function doCommand(data) {
       resolve(true);
 
     }).catch( (e) => {
-      console.error(`doCommand failed ${data.action} ${data.state}...${e}`);
+      console.error(`doCommand setSeatCupraStatus() failed ${data.action} ${data.state}...${e}`);
       sendProblem2clients(`Command failed!`);
       resolve(false);
     })
@@ -727,7 +727,7 @@ async function onNewData() {
 
         console.log('climatisation start extension');
 
-        if(await doCommand({action: 'climatisation', state: 'start'})) {
+        if(await doCommand({version: 'v1', action: 'climatisation', state: 'start'})) {
           onNewData();
           return;
         }
@@ -934,7 +934,7 @@ async function checkTimedClimatisation() {
 
   startingTimedClimatisation = true;
 
-  await doCommand({action: 'climatisation', state: 'start'});
+  await doCommand({version: 'v1', action: 'climatisation', state: 'start'});
 
   startingTimedClimatisation = false;
 }

@@ -442,7 +442,7 @@
             socket.emit('log', 'clickClimate');
 
             if(       $('#symClimate').hasClass('clicked_stop')) {
-              socket.emit('command', {action: 'climatisation', state: 'start'});
+              socket.emit('command', {version: 'v1', action: 'climatisation', state: 'start'});
             } else if($('#symClimate').hasClass('clicked_start')) {
               socket.emit('command', {action: 'climatisation', state: 'stop'});
             } else {
@@ -452,7 +452,7 @@
                 $('#symClimate').addClass('clicked');
 
                 sendClimateSettings();
-                socket.emit('command', {action: 'climatisation', state: 'start'});
+                socket.emit('command', {version: 'v1', action: 'climatisation', state: 'start'});
 
               } else {
                 
@@ -467,7 +467,7 @@
 
             let temp = parseFloat($('#climatemp_slider').prop('value'));
             temp += 273.15;  // C -> K
-            socket.emit('command', {action: 'climatisation', state: 'settings', body: {"targetTemperature_K": temp}});
+            socket.emit('command', {version: 'v1', action: 'climatisation', state: 'settings', body: {"targetTemperature_K": temp}});
           }
 
           // -----------------------------------------------------------------------------------------------
