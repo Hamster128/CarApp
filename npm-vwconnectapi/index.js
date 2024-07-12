@@ -2270,7 +2270,7 @@ class VwWeConnect {
         return new Promise((resolve, reject) => {
 
             let opts = {
-                url: "https://ola.prod.code.seat.cloud.vwgroup.com/vehicles/" + vin + "/" + action + "/requests/" + state,
+                url: "https://ola.prod.code.seat.cloud.vwgroup.com/v1/vehicles/" + vin + "/" + action + "/requests/" + state,
                 headers: {
                     accept: "*/*",
                     "user-agent": this.userAgent,
@@ -2383,14 +2383,22 @@ class VwWeConnect {
                     gzip: true,
                     json: true,
                 },
-                (err, resp, body) => {
+                async (err, resp, body) => {
                     if (err || (resp && resp.statusCode >= 400)) {
                         this.log.error("Failed refresh token.");
                         err && this.log.error(err);
                         resp && this.log.error(resp.statusCode.toString());
                         body && this.log.error(JSON.stringify(body));
-                        reject();
-                        return;
+
+                        if(resp.statusCode == 400) {
+                            try {
+                                await this.login();
+                                return resolve();
+                            } catch(err) {
+                            }
+                        }
+
+                        return reject();
                     }
                     try {
                         this.log.info("Token Refresh successful");

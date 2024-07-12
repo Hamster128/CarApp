@@ -192,13 +192,12 @@ function doCommand(data) {
 
   return new Promise((resolve, reject) => {
 
-    console.log(`doCommand ${data.action} ${data.state} ${JSON.stringify(data.body)}...`);
+    doCommandPromise = doCommandPromise.then( async () => {
 
-    doCommandPromise = doCommandPromise.then(
+      console.log(`doCommand ${data.action} ${data.state} ${JSON.stringify(data.body)}...`);
+      await vwConn.setSeatCupraStatus(currentState.vin, data.action, data.state, data.body)
 
-      vwConn.setSeatCupraStatus(currentState.vin, data.action, data.state, data.body)
-
-    ).then(()=>{
+    }).then(()=>{
 
       let key = data.action;
   
@@ -221,9 +220,8 @@ function doCommand(data) {
       console.log(`doCommand ${data.action} ${data.state}...ok`);
       resolve(true);
 
-    }).catch((e) => {
-
-      console.error(`doCommand ${data.action} ${data.state}...${e}`);
+    }).catch( (e) => {
+      console.error(`doCommand failed ${data.action} ${data.state}...${e}`);
       sendProblem2clients(`Command failed!`);
       resolve(false);
     })
