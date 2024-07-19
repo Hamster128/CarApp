@@ -625,6 +625,12 @@ async function onNewData() {
 
       if(chargingState != -1) {
 
+        if(chargingState != 2) {
+          maxKw = 0;
+          startingPercent = currentState.charging.status.battery.currentSOC_pct;
+          chargingStart = 0;
+        }
+
         chargingState = -1;
         chargingStopMessage('No external power', Config.telegram_external_power_errors);
 
