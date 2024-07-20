@@ -977,9 +977,10 @@ async function checkTimedCharging() {
     return;
   }
 
-  let state = currentState.charging.status.charging.chargePower_kW;
+  let kW = currentState.charging.status.charging.chargePower_kW;
 
-  if(state) {
+  if(kW) {
+    timedChargingRetry = 0
     return;
   }
 
