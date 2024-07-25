@@ -466,8 +466,7 @@
           function sendClimateSettings() {
 
             let temp = parseFloat($('#climatemp_slider').prop('value'));
-            temp += 273.15;  // C -> K
-            socket.emit('command', {version: 'v1', action: 'climatisation', state: 'settings', body: {"targetTemperature_K": temp}});
+            socket.emit('command', {version: 'v2', path: 'climatisation/settings', body: {"targetTemperature": temp, "targetTemperatureUnit":"celsius"}});
           }
 
           // -----------------------------------------------------------------------------------------------
@@ -755,16 +754,16 @@
            // ---------------------------------------- CLIMATISATION SETTINGS-------------------------------------
             $('#climatemp').removeClass('green');
 
-            if(data.activeCommands['climatisation_settings']) {
+            if(data.activeCommands['climatisation/settings']) {
 
-              if(data.activeCommands['climatisation_settings'].body.targetTemperature_K != data.climatisation_settings.settings.targetTemperature_K) {
+              if(data.activeCommands['climatisation/settings'].body.targetTemperature != data.climatisation_settings.targetTemperatureInCelsius) {
                 $('#climatemp').addClass('green');
               }
 
-              temp = data.activeCommands['climatisation_settings'].body.targetTemperature_K - 273.15;  // K -> C
+              temp = data.activeCommands['climatisation/settings'].body.targetTemperature;
 
             } else {
-              temp = data.climatisation_settings.settings.targetTemperature_K - 273.15;  // K -> C
+              temp = data.climatisation_settings.targetTemperatureInCelsius;
             }
 
             $('#charging_at').prop('checked', data.Config.chargingAt);

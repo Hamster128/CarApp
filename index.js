@@ -44,8 +44,7 @@ let ClientConfig = {
   climatisationtTh: true,
   climatisationtFr: true,
   climatisationtSa: false,
-  climatisationtSu: false,
-  lastTargetTemp_K: 22.0 + 273.15 // C -> K
+  climatisationtSu: false
 };
 
 //-------------------------------------------------------------------------------------------
@@ -192,16 +191,24 @@ function doCommand(data) {
 
   return new Promise((resolve, reject) => {
 
+    let key;
+
     doCommandPromise = doCommandPromise.then( async () => {
 
-      console.log(`doCommand ${data.version} ${data.action} ${data.state} ${JSON.stringify(data.body)}...`);
-      await vwConn.setSeatCupraStatus(data.version, currentState.vin, data.action, data.state, data.body)
+      if(data.path) {
+        console.log(`postSettings ${data.version} ${data.path} ${JSON.stringify(data.body)}...`);
+        await vwConn.postSettings(data.version, currentState.vin, data.path, data.body);
+        key = data.path;
+      } else {
+        console.log(`doCommand ${data.version} ${data.action} ${data.state} ${JSON.stringify(data.body)}...`);
+        await vwConn.setSeatCupraStatus(data.version, currentState.vin, data.action, data.state, data.body);
+        key = data.action;
+      }
+
 
     }).then(()=>{
 
-      let key = data.action;
-  
-      if(data.state == "settings") {
+      if(data.state === "settings") {
         key += '_' + data.state;
       }
     
@@ -217,11 +224,15 @@ function doCommand(data) {
         saveClientConfig();
       }
     
-      console.log(`doCommand ${data.action} ${data.state}...ok`);
       resolve(true);
 
     }).catch( (e) => {
-      console.error(`doCommand setSeatCupraStatus() failed ${data.action} ${data.state}...${e}`);
+      if(data.path) {
+        console.error(`postSettings postSettings() failed ${data.path} ${JSON.stringify(data.body)}...${e}`);
+      } else {
+        console.error(`doCommand setSeatCupraStatus() failed ${data.action} ${data.state}...${e}`);
+      }
+
       sendProblem2clients(`Command failed!`);
       resolve(false);
     })
@@ -427,7 +438,7 @@ function storeData() {
     + ';' + data.charging_settings.settings.targetSoc_pct
     + ';' + data.climatisation.data.climatisationStatus.climatisationState
     + ';' + data.climatisation.data.climatisationStatus.remainingClimatisationTime_min
-    + ';' + (data.climatisation_settings.settings.targetTemperature_K - 273.15).toFixed(1).replace('.', ',')
+    + ';' + (data.climatisation_settings.targetTemperatureInCelsius).toFixed(1).replace('.', ',')
     + ';' + (activeCommands['climatisation'] ? activeCommands['climatisation'].state : '')
     + ';' + data.climatisation.data.windowHeatingStatus.windowHeatingStatus[0].windowHeatingState
     + ';' + data.climatisation.data.windowHeatingStatus.windowHeatingStatus[1].windowHeatingState
@@ -596,13 +607,6 @@ async function onNewData() {
   if(!currentState.status) {currentState.status = desired.status}
   if(!currentState.parkingposition) {currentState.parkingposition = desired.parkingposition}
   if(!currentState.mileage) {currentState.mileage = desired.mileage}
-
-  // sometimes the target temperature is not valid
-  if(currentState.climatisation_settings.settings.targetTemperature_K - 273.15 < 18.0) {
-    currentState.climatisation_settings.settings.targetTemperature_K = ClientConfig.lastTargetTemp_K;
-  } else {
-    ClientConfig.lastTargetTemp_K = currentState.climatisation_settings.settings.targetTemperature_K;
-  }
 
   // count stats
   if(lastState) {

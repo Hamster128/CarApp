@@ -2015,7 +2015,7 @@ class VwWeConnect {
 
         await new Promise((resolve, reject) => {
             request.get({
-                url: "https://ola.prod.code.seat.cloud.vwgroup.com/v2/users/" + this.seatcupraUser + "/vehicles/" + vin + "/mycar",
+                url: "https://ola.prod.code.seat.cloud.vwgroup.com/v3/users/" + this.seatcupraUser + "/vehicles/" + vin + "/mycar",
 
                 headers: {
                     accept: "*/*",
@@ -2109,7 +2109,7 @@ class VwWeConnect {
         await new Promise((resolve, reject) => {
             request.get(
                 {
-                    url: "https://ola.prod.code.seat.cloud.vwgroup.com/vehicles/" + vin + "/climatisation/settings",
+                    url: "https://ola.prod.code.seat.cloud.vwgroup.com/v2/vehicles/" + vin + "/climatisation/settings",
 
                     headers: {
                         accept: "*/*",
@@ -2264,6 +2264,43 @@ class VwWeConnect {
         if(this.onNewData) {
             this.onNewData();
         }
+    }
+
+    postSettings(version, vin, path, body) {
+        return new Promise((resolve, reject) => {
+
+            let opts = {
+                url: `https://ola.prod.code.seat.cloud.vwgroup.com/${version ? version + '/': ''}vehicles/` + vin + "/" + path,
+                headers: {
+                    accept: "*/*",
+                    "user-agent": this.userAgent,
+                    "accept-language": "de-de",
+                    authorization: "Bearer " + this.config.atoken
+                },
+                followAllRedirects: true,
+                gzip: true,
+                json: true,
+                method: "POST"
+            }
+
+            if(body) {
+                opts.body = body;
+                opts.headers["content-type"] = "application/json";
+            }
+
+            request(opts, (err, resp, body) => {
+                    if (err || (resp && resp.statusCode >= 400)) {
+                        err && this.log.error(err);
+                        resp && this.log.error(resp.statusCode.toString() + ' ' + JSON.stringify(resp.body));
+                        body && this.log.error(JSON.stringify(body));
+                        reject();
+                        return;
+                    }
+                    this.log.info(JSON.stringify(body));
+                    resolve();
+                }
+            );
+        });
     }
 
     setSeatCupraStatus(version, vin, action, state, body) {
