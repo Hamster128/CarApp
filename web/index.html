@@ -239,6 +239,15 @@
                 <input type="range" min="18" max="24" step="0.5" value="21" class="setslider" id="climatemp_slider" style="width:100%;" onInput="changingClimaTemp(this.value);" onChange="setClimaTemp(this.value);">
               </td>
             </tr>
+            <tr><td style="height: 30px;"></td></tr>
+            <tr>
+              <td>
+                <label id="seats_label" class="switch_label">Seats:&nbsp;</label>
+                <input type="checkbox" class="switch" id="front_left" onChange="sendClimateSettings()"></input>&nbsp;&nbsp;
+                <input type="checkbox" class="switch" id="front_right" onChange="sendClimateSettings()"></input>&nbsp;&nbsp;&nbsp;&nbsp;
+                <label id="window_label" class="switch_label">Window: <input type="checkbox" class="switch" id="window" onChange="sendClimateSettings()"></input></label>
+              </td>
+            </tr>
             <tr><td style="height: 50px;"></td></tr>
             <tr>
               <td class="switch_td"><label id="limit_ac_label" class="switch_label">
@@ -466,7 +475,16 @@
           function sendClimateSettings() {
 
             let temp = parseFloat($('#climatemp_slider').prop('value'));
-            socket.emit('command', {version: 'v2', path: 'climatisation/settings', body: {"targetTemperature": temp, "targetTemperatureUnit":"celsius"}});
+
+            let body = {
+              "targetTemperature": temp,
+              "targetTemperatureUnit": "celsius",
+              "zoneFrontLeftEnabled": $('#front_left').prop('checked'),
+              "zoneFrontRightEnabled": $('#front_right').prop('checked'),
+              "windowHeatingEnabled": $('#window').prop('checked')
+            };
+
+            socket.emit('command', {version: 'v2', path: 'climatisation/settings', body});
           }
 
           // -----------------------------------------------------------------------------------------------
@@ -753,18 +771,43 @@
 
            // ---------------------------------------- CLIMATISATION SETTINGS-------------------------------------
             $('#climatemp').removeClass('green');
+            $('#seats_label').removeClass('green');
+            $('#window_label').removeClass('green');
 
             if(data.activeCommands['climatisation/settings']) {
 
-              if(data.activeCommands['climatisation/settings'].body.targetTemperature != data.climatisation_settings.targetTemperatureInCelsius) {
+              let activeCommand = data.activeCommands['climatisation/settings'].body;
+
+              if(activeCommand.targetTemperature != data.climatisation_settings.targetTemperatureInCelsius) {
                 $('#climatemp').addClass('green');
               }
 
-              temp = data.activeCommands['climatisation/settings'].body.targetTemperature;
+              temp = activeCommand.targetTemperature;
+
+              if(activeCommand.zoneFrontLeftEnabled != data.climatisation_settings.zoneFrontLeftEnabled) {
+                $('#seats_label').addClass('green');
+              } 
+
+              if(activeCommand.zoneFrontRightEnabled != data.climatisation_settings.zoneFrontRightEnabled) {
+                $('#seats_label').addClass('green');
+              } 
+
+              if(activeCommand.windowHeatingEnabled != data.climatisation_settings.windowHeatingEnabled) {
+                $('#window_label').addClass('green');
+              } 
+
+              $('#front_left').prop('checked', activeCommand.zoneFrontLeftEnabled);
+              $('#front_right').prop('checked', activeCommand.zoneFrontRightEnabled);
+              $('#window').prop('checked', activeCommand.windowHeatingEnabled);
 
             } else {
               temp = data.climatisation_settings.targetTemperatureInCelsius;
+
+              $('#front_left').prop('checked', data.climatisation_settings.zoneFrontLeftEnabled);
+              $('#front_right').prop('checked', data.climatisation_settings.zoneFrontRightEnabled);
+              $('#window').prop('checked', data.climatisation_settings.windowHeatingEnabled);
             }
+
 
             $('#charging_at').prop('checked', data.Config.chargingAt);
             $('#charging_at_h').val(data.Config.chargingAtH);
