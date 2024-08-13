@@ -288,8 +288,10 @@ function startServer() {
     }
 
     let data = {
+      version: req.query.version,
       action: req.query.action,
-      state: req.query.state
+      state: req.query.state,
+      path: req.query.path
     }
 
     if(await doCommand(data)) {
@@ -993,7 +995,7 @@ async function checkTimedCharging() {
     saveClientConfig();
   }
 
-  console.log(`Starting scheduled charging retry[secs]:${timedChargingRetry} state=${state}`);
+  console.log(`Starting scheduled charging retry[secs]:${timedChargingRetry}`);
 
   startingTimedCharging = true;
 
