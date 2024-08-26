@@ -499,6 +499,22 @@ function chargingStopMessage(msg, telegram) {
 }
 
 //-------------------------------------------------------------------------------------------
+function addMissingKeys(source, target) {
+  // Iterate over each key in the source object
+  for (let key in source) {
+      // If the key is not present in the target object
+      if (!target.hasOwnProperty(key)) {
+          // Add the key with its value from the source to the target
+          target[key] = source[key];
+      }
+
+      if(typeof source[key] === 'Object'){
+        addMissingKeys(source[key], target[key]);
+      }
+  }
+}
+
+//-------------------------------------------------------------------------------------------
 async function onNewData() {
 
   console.log('onNewData...');
@@ -602,13 +618,7 @@ async function onNewData() {
   currentState = structuredClone(vwConn.vehicles[0]);
   rawState     = structuredClone(vwConn.vehicles[0]);
 
-  if(!currentState.charging) {currentState.charging = desired.charging}
-  if(!currentState.climatisation) {currentState.climatisation = desired.climatisation}
-  if(!currentState.services) {currentState.services = desired.services}
-  if(!currentState.climatisation_settings) {currentState.climatisation_settings = desired.climatisation_settings}
-  if(!currentState.status) {currentState.status = desired.status}
-  if(!currentState.parkingposition) {currentState.parkingposition = desired.parkingposition}
-  if(!currentState.mileage) {currentState.mileage = desired.mileage}
+  addMissingKeys(desired, currentState);
 
   // count stats
   if(lastState) {
