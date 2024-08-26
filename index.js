@@ -508,7 +508,7 @@ function addMissingKeys(source, target) {
           target[key] = source[key];
       }
 
-      if(typeof source[key] === 'Object'){
+      if(typeof source[key] === 'object' && source[key] !== null && !Array.isArray(source[key])) {
         addMissingKeys(source[key], target[key]);
       }
   }
