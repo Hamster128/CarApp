@@ -499,19 +499,50 @@ function chargingStopMessage(msg, telegram) {
 }
 
 //-------------------------------------------------------------------------------------------
-function addMissingKeys(source, target) {
+function isObject(that) {
+
+  if(typeof that !== 'object') {
+    return false;
+  }
+
+  if(that === null) {
+    return false;
+  }
+
+  if(Array.isArray(that)) {
+    return false;
+  }
+
+  return true;
+}
+
+//-------------------------------------------------------------------------------------------
+function addMissingKeys(source, target, prefix) {
+
+  let missingKeys = '';
+  prefix = prefix || '';
+
   // Iterate over each key in the source object
   for (let key in source) {
-      // If the key is not present in the target object
-      if (!target.hasOwnProperty(key)) {
-          // Add the key with its value from the source to the target
-          target[key] = source[key];
-      }
 
-      if(typeof source[key] === 'object' && source[key] !== null && !Array.isArray(source[key])) {
-        addMissingKeys(source[key], target[key]);
+    // If the key is not present in the target object
+    if (!target.hasOwnProperty(key) || (isObject(source[key]) && !isObject(target[key]))) {
+      
+        // Add the key with its value from the source to the target
+        target[key] = structuredClone(source[key]);
+        missingKeys += (missingKeys.length ? ' ' : '') + prefix + key;
+        
+    } else if(isObject(source[key])) {
+
+      let missingSubKeys = addMissingKeys(source[key], target[key], prefix + key + '.');
+
+      if(missingSubKeys.length) {
+        missingKeys += (missingKeys.length ? ' ' : '') + missingSubKeys;
       }
+    }
   }
+
+  return missingKeys;
 }
 
 //-------------------------------------------------------------------------------------------
@@ -523,10 +554,15 @@ async function onNewData() {
     startServer();
   }
 
-//  fs.writeFileSync(`data/dump${moment().format('YYYYMMDDHHmmss')}.json`, JSON.stringify(currentState, null, 2), 'utf8');
+  let optional = {
+    parkingposition: {  // exists only when car is not on
+      lat: 0,
+      lon: 0
+    },
+  };
 
   // repair data from server
-  let desired = {
+  let mandatory = {
     charging: {
       status: {
         battery: {
@@ -549,22 +585,11 @@ async function onNewData() {
           carCapturedTimestamp: 0
         },
         windowHeatingStatus: {
-          windowHeatingStatus: [{
-            windowHeatingState: false
-          }, {
-            windowHeatingState: false
-          }]
+          windowHeatingStatus: []
         }
       }
     },
-    services: {
-      charging: {
-        targetPct: 0
-      }
-    },
     climatisation_settings : {
-      settings: {
-      }
     },
     charging_settings: {
       settings: {
@@ -577,10 +602,6 @@ async function onNewData() {
           targetPct: 0
         }
       }
-    },
-    parkingposition: {
-      lat: 0,
-      lon: 0
     },
     status2: {
       "locked": null,
@@ -618,7 +639,8 @@ async function onNewData() {
   currentState = structuredClone(vwConn.vehicles[0]);
   rawState     = structuredClone(vwConn.vehicles[0]);
 
-  addMissingKeys(desired, currentState);
+  addMissingKeys(optional, currentState);  
+  let missingKeys = addMissingKeys(mandatory, currentState);
 
   // count stats
   if(lastState) {
@@ -633,7 +655,14 @@ async function onNewData() {
     let socket = clients[key];
     sendCurrentData(socket, true);
   }
-  
+
+  if(missingKeys.length) {
+    console.log(`WARNING: missing data (${missingKeys})`);
+    sendProblem2clients('Data incomplete!');
+    fs.writeFileSync(`data/dump${moment().format('YYYYMMDDHHmmss')}_r.json`, JSON.stringify(rawState, null, 2), 'utf8');
+    fs.writeFileSync(`data/dump${moment().format('YYYYMMDDHHmmss')}_r.json`, JSON.stringify(rawState, null, 2), 'utf8');
+  }
+
   // check and send charging notifications
   if(currentState.charging.status.plug.plugConnectionState == 'connected') {
   
