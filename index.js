@@ -68,6 +68,9 @@ function loadData() {
 
   let files = fs.readdirSync("data");
   
+  let odoStart, cyclesStart;
+  let odoEnd, cyclesEnd;
+
   for(let file of files) {
 
     if(file.slice(-4) != '.csv') {
@@ -79,16 +82,34 @@ function loadData() {
     for(let i = 1; i < data.length; i++) {
       let line = data[i];
       let soc = line[2];
+      let odo = line.length >=18 ? line[17] : null;
 
       if(lastSoc > soc) {
         stats.cycles += (soc - lastSoc) / -100;
       }
 
       lastSoc = soc;
+
+      if(odo) {
+        if(!odoStart) {
+          odoStart = odo;
+          cyclesStart = stats.cycles;
+        }
+
+        odoEnd = odo;
+        cyclesEnd = stats.cycles;
+      }
+
     }
   };
 
   console.log(`battery cycles: ${stats.cycles}`);
+  console.log(`start odo:${odoStart} cycles:${cyclesStart}`);
+  console.log(`end   odo:${odoEnd} cycles:${cyclesEnd}`);
+
+  stats.cycles = (cyclesEnd - cyclesStart) / (odoEnd - odoStart) * odoEnd;
+
+  console.log(`battery cycles fixed: ${stats.cycles}`);
 }
 
 //-------------------------------------------------------------------------------------------
@@ -245,6 +266,13 @@ async function requestUpdate() {
 
   if(!updateTimeout) {
     console.log('requestUpdate...update in progress');
+    return;
+  }
+
+  // if last update was less than 3 secs ago, delay update to prevent "too many user requests"
+  if(moment.utc().diff(updateTimeout.__started) < 3000) {
+    clearTimeout(updateTimeout);
+    startNextUpdate(3);
     return;
   }
 
@@ -896,6 +924,7 @@ async function doUpdate() {
 //-------------------------------------------------------------------------------------------
 function startNextUpdate(secs) {
   updateTimeout = setTimeout(doUpdate, secs * 1000);
+  updateTimeout.__started = moment.utc();
 }
 
 //-------------------------------------------------------------------------------------------
