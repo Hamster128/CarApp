@@ -935,7 +935,7 @@
 
             let txt = socTime.fromNow();
 
-            if(actData.charging.status.charging.chargePower_kW) {
+            if(actData.charging.status.charging.chargePower_kW && actData.charging.status.battery.currentSOC_pct != actData.charging.status.battery.currentSOC_pct_est) {
               txt += ' (' + actData.charging.status.battery.currentSOC_pct + '%)';
             }
 
