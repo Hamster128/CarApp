@@ -223,7 +223,7 @@
               <td>ODO: <span id="spanODO"></span> km</td>
             </tr>
             <tr>
-              <td>Battery: <span id="spanCycles"></span> cycles estimated</td>
+              <td>Battery: <span id="spanCycles"></span> cycles (est.)</td>
             </tr>
             <tr><td style="height: 80px;"></td></tr>
             <tr>
@@ -667,8 +667,8 @@
 
             actData = data;
 
-            $('#soc').html(data.charging.status.battery.currentSOC_pct);
-            $('#soc_meter').prop('value', data.charging.status.battery.currentSOC_pct);
+            $('#soc').html(data.charging.status.battery.currentSOC_pct_est);
+            $('#soc_meter').prop('value', data.charging.status.battery.currentSOC_pct_est);
 
             socTime = moment(data.charging.status.battery.carCapturedTimestamp);
             updateSOCtime();
@@ -933,7 +933,13 @@
               return;
             }
 
-            $('#soc_time').html(socTime.fromNow());
+            let txt = socTime.fromNow();
+
+            if(actData.charging.status.charging.chargePower_kW) {
+              txt += ' (' + actData.charging.status.battery.currentSOC_pct + '%)';
+            }
+
+            $('#soc_time').html(txt);
           }
 
           setInterval(updateSOCtime, 5000);

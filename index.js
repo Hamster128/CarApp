@@ -297,7 +297,7 @@ function startServer() {
 
   //-------------------------------------------------------------------------------------------
   app.get(Config.index_path, function (req, res) {
-      res.sendFile(__dirname + '/web/index.html');
+    res.sendFile(__dirname + '/web/index.html');
   });
 
   app.get(Config.widget_path, function (req, res) {
@@ -333,8 +333,20 @@ function startServer() {
         }, 300000);
       }
 
+      if(req.query.verbose == '1') {
+        res.writeHead(302, {'Location': '/static/ok.html'});
+        return res.end();        
+        }
+
       res.send('+OK');
+
     } else {
+
+      if(req.query.verbose == '1') {
+        res.writeHead(302, {'Location': '/static/error.html'});
+        return res.end();        
+      }
+
       res.send('-ERROR');
     }
   });
@@ -386,9 +398,6 @@ function startServer() {
     //-------------------------------------------------------------------------------------------
     socket.on('log', async function(text) {
       console.log(`CLIENT: ${text}`);
-
-      fs.writeFileSync(`data/dump${moment().format('YYYYMMDDHHmmss')}_c.json`, JSON.stringify(currentState, null, 2), 'utf8');
-      fs.writeFileSync(`data/dump${moment().format('YYYYMMDDHHmmss')}_r.json`, JSON.stringify(rawState, null, 2), 'utf8');
     });
 
     //-------------------------------------------------------------------------------------------
@@ -574,6 +583,27 @@ function addMissingKeys(source, target, prefix) {
 }
 
 //-------------------------------------------------------------------------------------------
+function addAtHome(state) {
+
+  state.atHome = false;
+
+  if(!"home" in Config) {
+    return;
+  }
+
+  if(! "parkingposition" in state) {
+    return;
+  }
+
+  if(Math.abs(currentState.parkingposition.lat - Config.home.lat) > 0.002 ||
+     Math.abs(currentState.parkingposition.lon - Config.home.lon) > 0.002) {
+    return;
+  }
+
+  state.atHome = true;
+}
+
+//-------------------------------------------------------------------------------------------
 async function onNewData() {
 
   console.log('onNewData...');
@@ -613,7 +643,10 @@ async function onNewData() {
           carCapturedTimestamp: 0
         },
         windowHeatingStatus: {
-          windowHeatingStatus: []
+          windowHeatingStatus: [
+            {windowHeatingState: false},
+            {windowHeatingState: false}
+          ]
         }
       }
     },
@@ -669,6 +702,23 @@ async function onNewData() {
 
   addMissingKeys(optional, currentState);  
   let missingKeys = addMissingKeys(mandatory, currentState);
+  addAtHome(currentState);
+
+  // interpolate SOC
+  currentState.charging.status.battery.currentSOC_pct_est = currentState.charging.status.battery.currentSOC_pct;
+
+  if(currentState.charging.status.charging.chargePower_kW) {
+
+    let soc          = currentState.charging.status.battery.currentSOC_pct;
+    let target       = currentState.status.services.charging.targetPct;
+    let finishedInMs = moment.duration(currentState.status.services.charging.remainingTime, 'minutes').asMilliseconds();
+    let socTime      = moment(currentState.charging.status.battery.carCapturedTimestamp);
+    let socAgeMs     = moment().diff(socTime);
+
+    currentState.charging.status.battery.currentSOC_pct_est = Math.min(target, soc + (target - soc) / finishedInMs * socAgeMs).toFixed(0);
+
+    console.log(`currentSOC_pct_est=${currentState.charging.status.battery.currentSOC_pct_est} finishedInMs=${finishedInMs} socAgeMs=${socAgeMs} += ${(target - soc) / finishedInMs * socAgeMs}`);
+  }
 
   // count stats
   if(lastState) {
@@ -687,7 +737,6 @@ async function onNewData() {
   if(missingKeys.length) {
     console.log(`WARNING: missing data (${missingKeys})`);
     sendProblem2clients('Data incomplete!');
-    fs.writeFileSync(`data/dump${moment().format('YYYYMMDDHHmmss')}_r.json`, JSON.stringify(rawState, null, 2), 'utf8');
     fs.writeFileSync(`data/dump${moment().format('YYYYMMDDHHmmss')}_r.json`, JSON.stringify(rawState, null, 2), 'utf8');
   }
 
@@ -793,9 +842,7 @@ async function onNewData() {
 
         console.log(`climatisation extension suspended, engine on`);
 
-      } else if("home" in Config && 
-                Math.abs(currentState.parkingposition.lat - Config.home.lat) <= 0.002 && 
-                Math.abs(currentState.parkingposition.lon - Config.home.lon) <= 0.002) {
+      } else if(currentState.atHome) {
 
         console.log(`climatisation extension stopped, parking postion = home`);
 
@@ -816,11 +863,11 @@ async function onNewData() {
 
   // check charge limit
   if(ClientConfig.chargeLimit < 100 && 
-     currentState.charging.status.battery.currentSOC_pct >= ClientConfig.chargeLimit && 
+     currentState.charging.status.battery.currentSOC_pct_est >= ClientConfig.chargeLimit && 
      currentState.charging.status.charging.chargePower_kW > 0) {
 
     if(!activeCommands['charging'] || activeCommands['charging'].state != 'stop') {
-      console.log('charging limit reached, stopping charging ' + currentState.charging.status.battery.currentSOC_pct + '>=' + ClientConfig.chargeLimit);
+      console.log('charging limit reached, stopping charging ' + currentState.charging.status.battery.currentSOC_pct_est + '>=' + ClientConfig.chargeLimit);
 
       if(Config['charing_limit_reached_url']) {
         try {
