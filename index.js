@@ -604,6 +604,12 @@ function addAtHome(state) {
 }
 
 //-------------------------------------------------------------------------------------------
+Number.prototype.toFixedFloor = function (digits) {
+  const factor = Math.pow(10, digits);
+  return Math.floor(this * factor) / factor;
+};
+
+//-------------------------------------------------------------------------------------------
 async function onNewData() {
 
   console.log('onNewData...');
@@ -715,7 +721,7 @@ async function onNewData() {
     let socTime      = moment(currentState.charging.status.battery.carCapturedTimestamp);
     let socAgeMs     = moment().diff(socTime);
 
-    currentState.charging.status.battery.currentSOC_pct_est = Math.min(target, soc + (target - soc) / finishedInMs * socAgeMs).toFixed(0);
+    currentState.charging.status.battery.currentSOC_pct_est = Math.min(target, soc + (target - soc) / finishedInMs * socAgeMs).toFixedFloor(0);
 
     console.log(`currentSOC_pct_est=${currentState.charging.status.battery.currentSOC_pct_est} finishedInMs=${finishedInMs} socAgeMs=${socAgeMs} += ${(target - soc) / finishedInMs * socAgeMs}`);
   }
