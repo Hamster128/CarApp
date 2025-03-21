@@ -2015,7 +2015,7 @@ class VwWeConnect {
 
         await new Promise((resolve, reject) => {
             request.get({
-                url: "https://ola.prod.code.seat.cloud.vwgroup.com/v3/users/" + this.seatcupraUser + "/vehicles/" + vin + "/mycar",
+                url: "https://ola.prod.code.seat.cloud.vwgroup.com/v5/users/" + this.seatcupraUser + "/vehicles/" + vin + "/mycar",
 
                 headers: {
                     accept: "*/*",

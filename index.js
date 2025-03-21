@@ -162,7 +162,7 @@ async function sendData2abrp() {
   // https://documenter.getpostman.com/view/7396339/SWTK5a8w#fdb20525-51da-4195-8138-54deabe907d5
   let doc = {
     "utc": stamp,
-    "soc": data.charging.status.battery.currentSOC_pct,
+    "soc": data.charging.status.battery.currentSOC_pct_est,
     "est_battery_range": data.charging.status.battery.cruisingRangeElectric_km,
     "is_charging":  data.charging.status.charging.chargePower_kW ? 1 : 0,
     "power": data.charging.status.charging.chargePower_kW,
