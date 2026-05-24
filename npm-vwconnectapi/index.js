@@ -1532,9 +1532,13 @@ class VwWeConnect {
                 headers = {
                     accept: "application/json",
                     "content-type": "application/json;charset=utf-8",
-                    "user-agent": this.userAgent,
+                    "user-agent": "OLACupra/2.16.0 (Android 14; Pixel 8; Google) Mobile",
                     "accept-language": "de-de",
                     authorization: "Bearer " + this.config.atoken,
+                    "app-brand": "cupra",
+                    "app-market": "android",
+                    "app-version": "2.16.0",
+                    "User-ID": this.seatcupraUser
                 };
             }
             request.get(
@@ -2054,6 +2058,10 @@ class VwWeConnect {
                         "user-agent": this.userAgent,
                         "accept-language": "de-de",
                         authorization: "Bearer " + this.config.atoken,
+                        "app-brand": "cupra",
+                        "app-market": "android",
+                        "app-version": "2.16.0",
+                        "User-ID": this.seatcupraUser
                     },
                     followAllRedirects: true,
                     gzip: true,
@@ -2085,6 +2093,10 @@ class VwWeConnect {
                         "user-agent": this.userAgent,
                         "accept-language": "de-de",
                         authorization: "Bearer " + this.config.atoken,
+                        "app-brand": this.config.type === "seat" ? "seat" : "cupra",
+                        "app-market": "android",
+                        "app-version": "2.16.0",
+                        "User-ID": this.seatcupraUser
                     },
                     followAllRedirects: true,
                     gzip: true,
@@ -2116,6 +2128,10 @@ class VwWeConnect {
                         "user-agent": this.userAgent,
                         "accept-language": "de-de",
                         authorization: "Bearer " + this.config.atoken,
+                        "app-brand": this.config.type === "seat" ? "seat" : "cupra",
+                        "app-market": "android",
+                        "app-version": "2.16.0",
+                        "User-ID": this.seatcupraUser,
                     },
                     followAllRedirects: true,
                     gzip: true,
@@ -2147,6 +2163,10 @@ class VwWeConnect {
                         "user-agent": this.userAgent,
                         "accept-language": "de-de",
                         authorization: "Bearer " + this.config.atoken,
+                        "app-brand": this.config.type === "seat" ? "seat" : "cupra",
+                        "app-market": "android",
+                        "app-version": "2.16.0",
+                        "User-ID": this.seatcupraUser,
                     },
                     followAllRedirects: true,
                     gzip: true,
@@ -2178,6 +2198,10 @@ class VwWeConnect {
                         "user-agent": this.userAgent,
                         "accept-language": "de-de",
                         authorization: "Bearer " + this.config.atoken,
+                        "app-brand": this.config.type === "seat" ? "seat" : "cupra",
+                        "app-market": "android",
+                        "app-version": "2.16.0",
+                        "User-ID": this.seatcupraUser
                     },
                     followAllRedirects: true,
                     gzip: true,
@@ -2209,6 +2233,10 @@ class VwWeConnect {
                         "user-agent": this.userAgent,
                         "accept-language": "de-de",
                         authorization: "Bearer " + this.config.atoken,
+                        "app-brand": this.config.type === "seat" ? "seat" : "cupra",
+                        "app-market": "android",
+                        "app-version": "2.16.0",
+                        "User-ID": this.seatcupraUser
                     },
                     followAllRedirects: true,
                     gzip: true,
@@ -2240,6 +2268,10 @@ class VwWeConnect {
                         "user-agent": this.userAgent,
                         "accept-language": "de-de",
                         authorization: "Bearer " + this.config.atoken,
+                        "app-brand": this.config.type === "seat" ? "seat" : "cupra",
+                        "app-market": "android",
+                        "app-version": "2.16.0",
+                        "User-ID": this.seatcupraUser
                     },
                     followAllRedirects: true,
                     gzip: true,
@@ -2275,7 +2307,11 @@ class VwWeConnect {
                     accept: "*/*",
                     "user-agent": this.userAgent,
                     "accept-language": "de-de",
-                    authorization: "Bearer " + this.config.atoken
+                    authorization: "Bearer " + this.config.atoken,
+                    "app-brand": this.config.type === "seat" ? "seat" : "cupra",
+                    "app-market": "android",
+                    "app-version": "2.16.0",
+                    "User-ID": this.seatcupraUser
                 },
                 followAllRedirects: true,
                 gzip: true,
@@ -2312,7 +2348,11 @@ class VwWeConnect {
                     accept: "*/*",
                     "user-agent": this.userAgent,
                     "accept-language": "de-de",
-                    authorization: "Bearer " + this.config.atoken
+                    authorization: "Bearer " + this.config.atoken,
+                    "app-brand": this.config.type === "seat" ? "seat" : "cupra",
+                    "app-market": "android",
+                    "app-version": "2.16.0",
+                    "User-ID": this.seatcupraUser
                 },
                 followAllRedirects: true,
                 gzip: true,

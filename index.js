@@ -124,7 +124,7 @@ function sendCurrentData(socket, newData) {
 }
 
 //-------------------------------------------------------------------------------------------
-function cleanActiveCommands() {
+async function cleanActiveCommands() {
 
   // check if active command timed out
   for(let key in activeCommands) {
@@ -132,20 +132,49 @@ function cleanActiveCommands() {
     let command = activeCommands[key];
     let seconds = moment.utc().diff(command.stamp, 'seconds');
 
-    if(seconds >= Config.command_timeout_secs) {
-
-      if(key == 'climatisation' && command.state == "start" && Config.telegram_failed_climatisation) {
-        let climState = currentState.climatisation.data.climatisationStatus.climatisationState;
-
-        if(climState == "off") {
-          sendTelegram(`Climatisation failed!`);
-        }
-      }
-    
-      delete activeCommands[key];
+    if(seconds < Config.command_timeout_secs) {
+      continue;
     }
-  }
 
+    if(key == 'climatisation' && command.state == "start" && Config.telegram_failed_climatisation) {
+      let climState = currentState.climatisation.data.climatisationStatus.climatisationState;
+
+      if(climState == "off") {
+        sendTelegram(`Climatisation failed!`);
+      }
+    }
+  
+    delete activeCommands[key];
+
+    // retry commands
+    if(command.extra && command.extra.retry && command.extra.retry >= 5) {
+      continue;
+    } 
+
+    command.extra = command.extra || {};
+    command.extra.retry = command.extra.retry ? command.extra.retry + 1 : 1;
+    
+    if(key == "charging" && command.state == "start" && currentState.charging.status.charging.chargePower_kW == 0) {
+      console.log(`retry aciton:${key} state:${command.state} retry:${command.extra.retry}`);
+
+      await doCommand({
+        action: key, 
+        state: command.state, 
+        extra: command.extra
+      });          
+    }
+
+    if(key == "charging" && command.state == "stop" && currentState.charging.status.charging.chargePower_kW > 0) {
+      console.log(`retry aciton:${key} state:${command.state} retry:${command.extra.retry}`);
+
+      await doCommand({
+        action: key, 
+        state: command.state, 
+        extra: command.extra
+      });
+    }
+    
+  }
 }
 
 //-------------------------------------------------------------------------------------------
@@ -236,7 +265,8 @@ function doCommand(data) {
       activeCommands[key] = {
         "stamp": moment().utc(),
         "state": data.state,
-        "body" : data.body
+        "body" : data.body,
+        "extra": data.extra
       };
     
       if(data.action == "climatisation" && data.state == "stop") {
@@ -310,6 +340,10 @@ function startServer() {
   //-------------------------------------------------------------------------------------------
   app.get('/execute.cmd', async function (req, res) {
 
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET");
+    res.header("Access-Control-Allow-Headers", "Content-Type");
+
     if(req.query.key != Config.api_key) {
       res.send('-ERROR');
       return;
@@ -353,6 +387,10 @@ function startServer() {
 
   //-------------------------------------------------------------------------------------------
   app.get('/data', async function (req, res) {
+
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET");
+    res.header("Access-Control-Allow-Headers", "Content-Type");
 
     if(req.query.key != Config.api_key) {
       res.send('-ERROR');
@@ -869,10 +907,9 @@ async function onNewData() {
 
   // check charge limit
   if(ClientConfig.chargeLimit < 100 && 
-     currentState.charging.status.battery.currentSOC_pct_est >= ClientConfig.chargeLimit && 
-     currentState.charging.status.charging.chargePower_kW > 0) {
-
-    if(!activeCommands['charging'] || activeCommands['charging'].state != 'stop') {
+     currentState.charging.status.battery.currentSOC_pct_est >= ClientConfig.chargeLimit)
+    {
+    if(currentState.charging.status.charging.chargePower_kW > 0 && (!activeCommands['charging'] || activeCommands['charging'].state != 'stop')) {
       console.log('charging limit reached, stopping charging ' + currentState.charging.status.battery.currentSOC_pct_est + '>=' + ClientConfig.chargeLimit);
 
       if(Config['charing_limit_reached_url']) {
@@ -887,9 +924,11 @@ async function onNewData() {
       await doCommand({action: 'charging', state: 'stop'});
     }
 
-    ClientConfig.chargeLimit = 100;
-    onNewData();
-    return;
+    if(currentState.charging.status.charging.chargePower_kW == 0) {
+      console.log(`Charging stopped > reset chargeLimit to 100%`);
+      ClientConfig.chargeLimit = 100;
+      return onNewData();
+    }
   }
 
   sendData2abrp();

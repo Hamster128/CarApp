@@ -494,6 +494,7 @@
           function update() {
             $('#problem').html('updateing...');
             socket.emit('update');
+            sendChargingSettings();
           }
 
           // -----------------------------------------------------------------------------------------------
@@ -512,7 +513,7 @@
             let chargeLimit = parseInt($('#soc_limit').html());
             $('#limit_slider').prop('value', chargeLimit);
 
-            sendChargingSettings(chargeLimit);
+            sendChargingSettings();
           }
 
           // -----------------------------------------------------------------------------------------------
